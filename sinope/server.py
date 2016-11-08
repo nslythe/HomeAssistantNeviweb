@@ -11,10 +11,17 @@ class serverThread(threading.Thread):
 
     def run(self):
         while True:
-            data = self.__server.socket.recv(6)
+            data = self.__server.socket.recv(
+                sinope.message.HEADER_SIZE +
+                sinope.message.SIZE_SIZE +
+                sinope.message.COMMAND_SIZE)
             message = sinope.message.create(data)
+            if message != None:
+                data = self.__server.socket.recv(
+                    message.getSize() +
+                    sinope.message.CRC_SIZE -
+                    sinope.message.COMMAND_SIZE)
             print (message)
-        
 
 class server:
     def __init__(self, address, port):
