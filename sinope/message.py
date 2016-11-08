@@ -8,24 +8,31 @@ HEADER_SIZE = 2
 SIZE_SIZE = 2
 COMMAND_SIZE = 2
 
-def create(data):
+def create(headerRaw, sizeRaw, commandRaw):
     message = None
-    (header55, header00, size, command) = struct.unpack("<BBhh", data)
+    (header55, header00) = struct.unpack("<BB", headerRaw)
+    size = struct.unpack("<h", sizeRaw)[0]
+    command = struct.unpack("<h", commandRaw)[0]
 
     if header55 == HEADER55 and header00 == HEADER00:
         if command == messagePingAnswer.command:
-            message = messagePingAnswer(size)
+            message = messagePingAnswer()
+        if command == messageAuthenticationKeyAnswer.command:
+            message = messageAuthenticationKeyAnswer()
+
+    if message != None:
+        message.setSize(size)
 
     return message
 
-class message:
+class message(object):
     def __init__(self, name):
         self.__header = struct.pack("<BB", 0x55, 0x00)
         self.__name = name
         self.size = None
         self.command = None
         self.__data = None
-        self.__crc = None
+        self.crc = None
 
     def __calculateSize(self):
         tmpSize = 0
@@ -38,20 +45,36 @@ class message:
     def getSize(self):
         return struct.unpack("<h", self.size)[0]
 
+    def setSize(self, size):
+        self.size = struct.pack("<h", size)
+
+    def getCommand(self):
+        return struct.unpack("<h", self.command)[0]
+
+    def setCommand(self, command):
+        self.command = struct.pack("<h", command)
+
+    def setData(self, data):
+        data.reverse()
+        self.__data = data
+
     def __calculateCrc(self):
         self.__calculateSize()
         crc = sinope.crc.crc8()
         data = self.__header + self.size + self.command
         if self.__data != None:
             data += self.__data
-        self.__crc = struct.pack("B", crc.crc(data))
+        return struct.pack("B", crc.crc(data))
+
+    def checkCrc(self):
+        return self.crc == self.__calculateCrc()
 
     def getPayload(self):
-        self.__calculateCrc()
+        self.crc = self.__calculateCrc()
         payload = self.__header + self.size + self.command;
         if self.__data != None:
             payload += self.__data
-        payload += self.__crc
+        payload += self.crc
         return payload 
 
 
@@ -78,25 +101,20 @@ class message:
             s += " | "
             s += self.__bytesToString(self.__data)
 
-        if self.__crc != None:
+        if self.crc != None:
             s += " | "
-            s += self.__bytesToString(self.__crc)
+            s += self.__bytesToString(self.crc)
         return s
 
 class messageRequest(message):
     def __init__(self, name):
-        message.__init__(self, name)
+        super(messageRequest, self).__init__(name)
 
-    def setCommand(self, command):
-        self.command = struct.pack("<h", command)
-
-    def setData(self, data):
-        pass
 
 class messageAnswer(message):
-    def __init__(self, size, name):
-        message.__init__(self, name)
-        self.size = struct.pack("<h", size)
+    def __init__(self, name):
+        super(messageAnswer, self).__init__(name)
+
 
 class messagePing(messageRequest):
     command = 0x0012
@@ -110,19 +128,23 @@ class messagePingAnswer(messageAnswer):
     command = 0x0013
     name = "PingReply"
     
-    def __init__(self, size):
-        messageAnswer.__init__(self, size, messagePingAnswer.name)
+    def __init__(self):
+        messageAnswer.__init__(self, messagePingAnswer.name)
+        self.setCommand(messagePingAnswer.command)
         
 class messageAuthenticationKey(messageRequest):
     command = 0x010A
     name = "AuthenticationKey"
     
-    def __init__(self):
-        messageRequest.__init__(self, messageAuthenticationKey.name)
+    def __init__(self, key):
+        super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
         self.setCommand(messageAuthenticationKey.command)
-        self.__idHex = None
-        
-    def setId(self, idValue):
-        self.__idHex = bytearray.fromhex(strid)
+        self.setData(bytearray.fromhex(key))
 
-
+class messageAuthenticationKeyAnswer(messageAnswer):
+    command = 0x010B
+    name = "AuthenticationKeyReply"
+    
+    def __init__(self):
+        messageAnswer.__init__(self, messageAuthenticationKeyAnswer.name)
+        self.setCommand(messageAuthenticationKeyAnswer.command)
