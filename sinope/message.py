@@ -19,8 +19,9 @@ def create(data):
     return message
 
 class message:
-    def __init__(self):
+    def __init__(self, name):
         self.__header = struct.pack("<BB", 0x55, 0x00)
+        self.__name = name
         self.size = None
         self.command = None
         self.__data = None
@@ -61,7 +62,9 @@ class message:
         return s
 
     def __str__(self):
-        s = self.__bytesToString(self.__header)
+        s = self.__name
+        s += " " 
+        s += self.__bytesToString(self.__header)
 
         if self.size != None:
             s += " | "
@@ -81,8 +84,8 @@ class message:
         return s
 
 class messageRequest(message):
-    def __init__(self):
-        message.__init__(self)
+    def __init__(self, name):
+        message.__init__(self, name)
 
     def setCommand(self, command):
         self.command = struct.pack("<h", command)
@@ -91,28 +94,31 @@ class messageRequest(message):
         pass
 
 class messageAnswer(message):
-    def __init__(self, size):
-        message.__init__(self)
+    def __init__(self, size, name):
+        message.__init__(self, name)
         self.size = struct.pack("<h", size)
 
 class messagePing(messageRequest):
     command = 0x0012
+    name = "Ping"
     
     def __init__(self):
-        messageRequest.__init__(self)
+        messageRequest.__init__(self, messagePing.name)
         self.setCommand(messagePing.command)
 
 class messagePingAnswer(messageAnswer):
     command = 0x0013
+    name = "PingReply"
     
     def __init__(self, size):
-        messageAnswer.__init__(self, size)
+        messageAnswer.__init__(self, size, messagePingAnswer.name)
         
 class messageAuthenticationKey(messageRequest):
     command = 0x010A
+    name = "AuthenticationKey"
     
     def __init__(self):
-        messageRequest.__init__(self)
+        messageRequest.__init__(self, messageAuthenticationKey.name)
         self.setCommand(messageAuthenticationKey.command)
         self.__idHex = None
         
