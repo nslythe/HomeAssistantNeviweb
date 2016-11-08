@@ -68,7 +68,21 @@ class message:
         return s
 
 class messagePing(message):
+    command = 0x0012
+    
     def __init__(self):
         message.__init__(self)
-        self.setCommand(0x0012)
+        self.setCommand(command)
+        
+class messageAuthenticationKey(message):
+    command = 0x010A
+    
+    def __init__(self):
+        message.__init__(self)
+        self.setCommand(command)
+        self.__idHex = None
+        
+    def setId(self, idValue):
+        self.__idHex = bytearray.fromhex(strid)
+
 
