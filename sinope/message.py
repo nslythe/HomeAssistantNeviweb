@@ -9,113 +9,133 @@ HEADER_SIZE = 2
 SIZE_SIZE = 2
 COMMAND_SIZE = 2
 
-def create(headerRaw, sizeRaw, commandRaw):
-    message = None
-    (header55, header00) = struct.unpack("<BB", headerRaw)
-    size = struct.unpack("<h", sizeRaw)[0]
-    command = struct.unpack("<h", commandRaw)[0]
-
-    if header55 == HEADER55 and header00 == HEADER00:
-        if command == messagePingAnswer.command:
-            message = messagePingAnswer()
-        if command == messageAuthenticationKeyAnswer.command:
-            message = messageAuthenticationKeyAnswer()
-
-    if message != None:
-        message.setSize(size)
-
-    return message
-
 class message(object):
-    def create(headerRaw, sizeRaw, commandRaw):
-        message = None
+    def create(headerRaw, commandRaw):
+        msg = None
         (header55, header00) = struct.unpack("<BB", headerRaw)
-        size = struct.unpack("<h", sizeRaw)[0]
-        command = struct.unpack("<h", commandRaw)[0]
+        command = struct.unpack("<H", commandRaw)[0]
 
-        if header55 == HEADER55 and header00 == HEADER00:
-            if command == messagePingAnswer.command:
-                message = messagePingAnswer()
-            if command == messageAuthenticationKeyAnswer.command:
-                message = messageAuthenticationKeyAnswer()
+        if header55 != HEADER55 or header00 != HEADER00:
+            raise Exception("Header not valid")
 
-        if message != None:
-            message.setSize(size)
+        msg = message("UnknownCommand")
+        msg.setCommand(commandRaw, raw = True)
+
+        return msg
+
+    def read(stream):
+        header = stream.read(HEADER_SIZE)
+        size = stream.read(SIZE_SIZE)
+        command = stream.read(COMMAND_SIZE)
+
+        message = None
+
+        if header == "" or size == "" or command == "":
+            raise Exception("Unable to read packet headers")
+
+        message = sinope.message.message.create(header, command)
+        data = stream.read(sinope.message.message.getSizeFromRaw(size) - COMMAND_SIZE)
+        message.setData(data, raw = True)
+
+        crc = stream.read(CRC_SIZE)
+        if message.getCrc() != crc:
+            raise Exception("Failed to read message")
 
         return message
 
-    def read(server):
-        header = server.receive(HEADER_SIZE)
-        size = server.receive(SIZE_SIZE)
-        command = server.receive(COMMAND_SIZE)
-        if header != None and size != None and command != None:
-            message = sinope.message.create(header, size, command)
-
-            if message != None:
-                data = server.receive(message.getSize() - COMMAND_SIZE)
-                if data != None:
-                    message.data = data
-
-                crc = server.receive(CRC_SIZE)
-                if crc != None:
-                    if message.checkCrc(crc):
-                        return message
-        return None
-
+    def getSizeFromRaw(size):
+        return struct.unpack("<H", size)[0]
 
     def __init__(self, name):
+        if not isinstance(name, str):
+            raise Exception("name argument not a string")
         self.__header = struct.pack("<BB", 0x55, 0x00)
         self.__name = name
-        self.size = None
-        self.command = None
-        self.data = None
-        self.crc = None
+        self.__size = None
+        self.__command = None
+        self.__data = None
+        self.__crc = None
 
-    def __calculateSize(self):
+    def __refreshSize(self):
+        if self.__command == None:
+            raise Exception("Command not set")
         tmpSize = 0
-        tmpSize += len(self.command)
-        if self.data != None:
-            tmpSize += len(self.data);
-        self.size = struct.pack("<h", tmpSize)
+        tmpSize += len(self.__command)
+        if self.__data != None:
+            tmpSize += len(self.__data);
+        self.__size = struct.pack("<H", tmpSize)
 
-    def __calculateCrc(self):
-        self.__calculateSize()
+    def __refreshCrc(self):
+        if self.__command == None:
+            raise Exception("Command not set")
+        if self.__size == None:
+            raise Exception("Size not set")
         crc = sinope.crc.crc8()
-        data = self.__header + self.size + self.command
-        if self.data != None:
-            data += self.data
-        return struct.pack("<B", crc.crc(data))
+        data = self.__header + self.__size + self.__command
+        if self.__data != None:
+            data += self.__data
+        self.__crc = struct.pack("<B", crc.crc(data))
 
-    def getSize(self):
-        return struct.unpack("<h", self.size)[0]
+    def __refresh(self):
+        self.__refreshSize()
+        self.__refreshCrc()
 
-    def setSize(self, size):
-        self.size = struct.pack("<h", size)
+    def getName(self):
+        return self.__name
 
-    def getCommand(self):
-        return struct.unpack("<h", self.command)[0]
+    def getSize(self, raw = False):
+        if raw:
+            return self.__size
+        else:
+            return sinope.message.message.getSizeFromRaw(self.__size)
 
-    def setCommand(self, command):
-        self.command = struct.pack("<h", command)
+    def getCommand(self, raw = False):
+        if raw:
+            return self.__command
+        else:
+            return struct.unpack("<H", self.__command)[0]
 
-    def getData(self):
-        return self.data
+    def setCommand(self, command, raw = False):
+        if raw:
+            if not isinstance(command, bytes):
+                raise Exception("Command argument not a bytes")
+            self.__command = command
+        else:
+            if not isinstance(command, int):
+                raise Exception("Command argument not a int")
+            self.__command = struct.pack("<H", command)
+        self.__refresh()
 
-    def setData(self, data):
-        data.reverse()
-        self.data = data
+    def getData(self, raw = False):
+        if raw:
+            return self.__data
+        else:
+            data = bytearray(self.__data)
+            data.reverse()
+            return data
 
-    def checkCrc(self, crc):
-        self.crc = self.__calculateCrc()
-        return self.crc == crc
+    def setData(self, data, raw = False):
+        if not isinstance(data, bytes):
+            raise Exception("Data argument not a bytes")
+        if len(data) > 0:
+            if raw:
+                self.__data = bytearray(data)
+            else:
+                self.__data = bytearray(data)
+                self.__data.reverse()
+        self.__refresh()
+
+    def getCrc(self):
+        return self.__crc
 
     def getPayload(self):
-        self.size = self.__calculateSize()
-        self.crc = self.__calculateCrc()
-        payload = self.__header + self.size + self.command;
-        if self.data != None:
-            payload += self.data
-        payload += self.crc
+        payload = bytearray()
+        payload.add(self.__header)
+        payload.add(self.__size)
+        payload.add(self.__command)
+        if self.__data != None:
+            payload.add(self.__data)
+        payload.add(self.crc)
         return payload 
 
     def __str__(self):
@@ -123,17 +143,17 @@ class message(object):
         s += " " 
         s += sinope.str.bytesToString(self.__header)
 
-        if self.size != None:
+        if self.__size != None:
             s += " | "
-            s += sinope.str.bytesToString(self.size)
+            s += sinope.str.bytesToString(self.__size)
 
-        if self.command != None:
+        if self.__command != None:
             s += " | "
-            s += sinope.str.bytesToString(self.command)
+            s += sinope.str.bytesToString(self.__command)
 
-        if self.data != None:
+        if self.__data != None:
             s += " | "
-            s += sinope.str.bytesToString(self.data)
+            s += sinope.str.bytesToString(self.__data)
 
         if self.crc != None:
             s += " | "

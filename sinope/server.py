@@ -98,9 +98,12 @@ class server:
                 self.logger.debug("Send : %s", message)
                 break
 
-    def receive(self, size):
+    def read(self, size):
         while self.__socket.fileno() >= 0:
             (rios, wios, xios) = select.select([self.__socket], [], [], 0.1)
             if len(rios) > 0:
                 data = self.__socket.recv(size)
+                if data == None:
+                    return ""
                 return data
+        return ""
