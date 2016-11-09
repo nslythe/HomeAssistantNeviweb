@@ -44,7 +44,7 @@ class message(object):
         if header == "" or size == "" or command == "":
             raise Exception("Unable to read packet headers")
 
-        message = sinope.message.message.create(header, command)
+        message = sinope.message.message.create(command)
         data = stream.read(sinope.message.message.getSizeFromRaw(size) - COMMAND_SIZE)
         message.setData(data, raw = True)
 
