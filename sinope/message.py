@@ -10,14 +10,22 @@ SIZE_SIZE = 2
 COMMAND_SIZE = 2
 
 class message(object):
-    def create(headerRaw, commandRaw):
+    def create(commandRaw):
+        """
+        Create sinope.message.message from commandRaw.
+        
+        Parameters
+        ----------
+        commandRaw : bytes
+            The command has read from the srteam (in raw format), it must be of length COMMAND_SIZE
+        
+        Returns
+        -------
+        message
+            The message created or None if creation failed
+        """
         msg = None
-        (header55, header00) = struct.unpack("<BB", headerRaw)
         command = struct.unpack("<H", commandRaw)[0]
-
-        if header55 != HEADER55 or header00 != HEADER00:
-            raise Exception("Header not valid")
-
         msg = message("UnknownCommand")
         msg.setCommand(commandRaw, raw = True)
 
@@ -25,6 +33,9 @@ class message(object):
 
     def read(stream):
         header = stream.read(HEADER_SIZE)
+        if header[0] != HEADER55 or header[1] != HEADER00:
+            raise Exception("Header not valid")
+
         size = stream.read(SIZE_SIZE)
         command = stream.read(COMMAND_SIZE)
 
