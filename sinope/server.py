@@ -5,14 +5,16 @@ import sys
 import socket
 import threading
 import time
+
 import sinope.message
+import sinope.str
 
 class serverWatchdog(threading.Thread):
     def __init__(self, server):
         threading.Thread.__init__(self)
         self.__server = server
         self.__stop = False
-        self.__delay = 10
+        self.__delay = 20
 
     def stop(self):
         self.__stop = True
@@ -40,22 +42,16 @@ class serverListener(threading.Thread):
 
     def run(self):
         while not self.__stop:
-            header = self.__server.receive(sinope.message.HEADER_SIZE)
-            size = self.__server.receive(sinope.message.SIZE_SIZE)
-            command =self.__server.receive(sinope.message.COMMAND_SIZE)
-            if header != None and size != None and command != None:
-                message = sinope.message.create(header, size, command)
-                if message != None:
-                    data = self.__server.receive(message.getSize() - sinope.message.COMMAND_SIZE)
-                    if data != None:
-                        message.data = data
-                        crc = self.__server.receive(sinope.message.CRC_SIZE)
-                        if crc != None:
-                            message.crc = crc
-                if message != None and message.checkCrc():
-                    self.__server.logger.debug("Received : %s", message)
-                else:
-                    self.__server.logger.error("Message parsing failed %s, %s, %s", header, size, command)
+            message = sinope.message.message.read(self.__server)
+            if message == None:
+                continue
+            self.__server.logger.debug("Received message : %s", message)
+            if isinstance(message, sinope.message.messageAuthenticationKeyAnswer):
+                print ("--- %s" % message.getStatus())
+                print ("--- %s" % message.getBackout())
+                print ("--- %s" % sinope.str.bytesToString(message.getApiKey()))
+
+
         self.__server.logger.debug("Listener thread stopped")
 
 class server:

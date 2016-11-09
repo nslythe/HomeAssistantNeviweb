@@ -21,9 +21,9 @@ message = sinope.message.messageAuthenticationKey(sys.argv[1])
 server.connect()
 server.sendMessage(message)
 
+time.sleep(350)
 
-
-
+server.close()
 server.wait()
 
 
