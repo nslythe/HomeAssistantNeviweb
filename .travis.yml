@@ -3,5 +3,9 @@ python:
   - "3.2"
   - "3.3"
   - "3.4"
+install:
+  - pip install coveralls
 # command to run tests
-script: python test.py
+script: coverage run --source=sinope test.py
+after_success:
+  coveralls
