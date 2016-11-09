@@ -168,12 +168,12 @@ class message(object):
 
     def getPayload(self):
         payload = bytearray()
-        payload.add(self.__header)
-        payload.add(self.__size)
-        payload.add(self.__command)
+        payload += self.__header
+        payload += self.__size
+        payload += self.__command
         if self.__data != None:
-            payload.add(self.__data)
-        payload.add(self.crc)
+            payload += self.__data
+        payload += self.__crc
         return payload 
 
     def __str__(self):
@@ -193,9 +193,9 @@ class message(object):
             s += " | "
             s += sinope.str.bytesToString(self.__data)
 
-        if self.crc != None:
+        if self.__crc != None:
             s += " | "
-            s += sinope.str.bytesToString(self.crc)
+            s += sinope.str.bytesToString(self.__crc)
         return s
 
 class messagePing(message):
@@ -221,7 +221,7 @@ class messageAuthenticationKey(message):
     def __init__(self, key):
         super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
         self.setCommand(messageAuthenticationKey.command)
-        self.setData(bytearray.fromhex(key))
+        self.setData(bytes(bytearray.fromhex(key)))
 
 class messageAuthenticationKeyAnswer(message):
     command = 0x010B
