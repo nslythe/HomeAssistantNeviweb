@@ -30,3 +30,8 @@ class messageCreateTest(unittest.TestCase):
     def test_create_1(self):
         stream = StreamMoc(b"\x55\x00\x0A\x00\x0A\x01\xEF\xCD\xAB\x89\x67\x45\x23\x01\xDA")
         sinope.message.message.read(stream)
+
+    def test_create_2(self):
+        stream = StreamMoc(b"\x56\x00\x0A\x00\x0A\x01\xEF\xCD\xAB\x89\x67\x45\x23\x01\xDA")
+        with self.assertRaises(Exception):
+            sinope.message.message.read(stream)
