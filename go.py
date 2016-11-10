@@ -17,13 +17,10 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 server = sinope.server.server("10.1.0.152", 4550)
-message = sinope.message.messageAuthenticationKey(sys.argv[1])
+message = sinope.message.messageAuthenticationKey()
+message.setKey(sys.argv[1])
 server.connect()
 server.sendMessage(message)
-
-time.sleep(350)
-
-server.close()
 server.wait()
 
 

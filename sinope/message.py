@@ -1,81 +1,12 @@
+import inspect
 import struct
+import sys
 import sinope.crc
 import sinope.str
-
-CRC_SIZE = 1
-HEADER55 = 0x55
-HEADER00 = 0x00
-HEADER_SIZE = 2
-SIZE_SIZE = 2
-COMMAND_SIZE = 2
+import sinope.messageCreator
 
 class message(object):
-    def create(commandRaw):
-        """
-        Create sinope.message.message from commandRaw.
-        
-        Parameters
-        ----------
-        commandRaw : bytes
-            The command has read from the srteam (in raw format), it must be of length COMMAND_SIZE
-        
-        Returns
-        -------
-        message
-            The message created or None if creation failed
-        """
-        msg = message("UnknownCommand")
-        msg.setCommand(commandRaw, raw = True)
-        return msg
-
-    def read(stream):
-        """
-        Read one message from the stream
-        
-        Parameters
-        ----------
-        stream : iostream
-            A stream with a read function like file.read
-        
-        Returns
-        -------
-        message
-            Return a valid new message, if any error ocured while parsing an exception is raised
-        
-        """
-        message = None
-
-        # read and validate header
-        header = stream.read(HEADER_SIZE)
-        if header == None or header == "" or header[0] != HEADER55 or header[1] != HEADER00:
-            raise Exception("Header not valid")
-
-        # read and validate size
-        size = stream.read(SIZE_SIZE)
-        if size==None or size == "":
-            raise Exception("Unable to read size")
-            
-        # read and validate command
-        command = stream.read(COMMAND_SIZE)
-        if command == None or command == "":
-            raise Exception("Unable to read command")
-
-        # read data
-        data = stream.read(sinope.message.message.getSizeFromRaw(size) - COMMAND_SIZE)
-
-        # read crc
-        crc = stream.read(CRC_SIZE)
-
-        message = sinope.message.message.create(command)
-        
-        message.setData(data, raw = True)
-        
-        if message.getCrc() != crc:
-            raise Exception("Message CRC does not match")
-
-        return message
-
-    def getSizeFromRaw(size):
+    def getSizeFromRawData(size):
         return struct.unpack("<H", size)[0]
 
     def __init__(self, name):
@@ -87,6 +18,12 @@ class message(object):
         self.__command = None
         self.__data = None
         self.__crc = None
+
+    def clone(self, other):
+        self.__size = other.__size
+        self.__command = other.__command
+        self.__data = other.__data
+        self.__crc = other.__crc
 
     def __refreshSize(self):
         if self.__command == None:
@@ -119,7 +56,7 @@ class message(object):
         if raw:
             return self.__size
         else:
-            return sinope.message.message.getSizeFromRaw(self.__size)
+            return sinope.message.message.getSizeFromRawData(self.__size)
 
     def getCommand(self, raw = False):
         if raw:
@@ -212,10 +149,13 @@ class messageAuthenticationKey(message):
     command = 0x010A
     name = "AuthenticationKey"
     
-    def __init__(self, key):
+    def __init__(self):
         super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
         self.setCommand(messageAuthenticationKey.command)
+
+    def setKey(self, key):
         self.setData(bytes(bytearray.fromhex(key)))
+ 
 
 class messageAuthenticationKeyAnswer(message):
     command = 0x010B
@@ -243,3 +183,4 @@ class messageAuthenticationKeyAnswer(message):
         data.append(maping[8])
         data.append(maping[9])
         return data
+

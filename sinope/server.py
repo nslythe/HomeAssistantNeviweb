@@ -7,6 +7,7 @@ import threading
 import time
 
 import sinope.message
+import sinope.messageCreator
 import sinope.str
 
 class serverWatchdog(threading.Thread):
@@ -14,23 +15,61 @@ class serverWatchdog(threading.Thread):
         threading.Thread.__init__(self)
         self.__server = server
         self.__stop = False
-        self.__delay = 20
+        self.__pause = False
 
     def stop(self):
         self.__stop = True
-        self.__server.logger.debug("Watchdog thread stopping")
+        self.__server.logger.debug("Watchdog stopping")
+
+    def pause(self, b):
+        self.__pause = b
 
     def run(self):
+        self.__server.logger.debug("Watchdog started")
         while not self.__stop:
-            message = sinope.message.messagePing()
-            self.__server.sendMessage(message)
-            for x in range(0, 10 * self.__delay):
-                if self.__stop:
-                    break
-                time.sleep(0.1)
-        self.__server.logger.debug("Watchdog thread stopped")
+            if not self.__pause:
+                if self.__server.state != 0:
+                    self.__server.restart()
+            time.sleep(0.1)
+        self.__server.logger.debug("Watchdog stopped")
 
-class serverListener(threading.Thread):
+class serverPingner(threading.Thread, sinope.messageHandler):
+    def __init__(self, server):
+        threading.Thread.__init__(self)
+        self.__server = server
+        self.__stop = False
+        self.__pingDelay = 2
+        self.__lastPingTime = 0
+        self.__lastReceivedPingTime = 0
+        self.__lastWarningPing = 0
+
+    def stop(self):
+        self.__stop = True
+        self.__server.logger.debug("Pigner stopping")
+
+    def run(self):
+        self.__server.logger.debug("Pigner started")
+        self.__lastReceivedPingTime = time.time()
+        while not self.__stop:
+            if time.time() - self.__lastPingTime >= self.__pingDelay:
+                message = sinope.message.messagePing()
+                self.__server.sendMessage(message)
+                self.__lastPingTime = time.time()
+
+            if time.time() - self.__lastReceivedPingTime >= self.__pingDelay * 2:
+                if time.time() - self.__lastWarningPing >= self.__pingDelay:
+                    self.__server.logger.warning("Server did not respond for while")
+                    self.__lastWarningPing = time.time()
+            if time.time() - self.__lastReceivedPingTime >= self.__pingDelay * 4:
+                self.__server.state = 1
+
+            time.sleep(0.1)
+        self.__server.logger.debug("Pigner stopped")
+
+    def handleMessage(self, message):
+        self.__lastReceivedPingTime = time.time()
+
+class serverListener(threading.Thread, sinope.messageHandler):
     def __init__(self, server):
         threading.Thread.__init__(self)
         self.__server = server
@@ -38,51 +77,103 @@ class serverListener(threading.Thread):
 
     def stop(self):
         self.__stop = True
-        self.__server.logger.debug("Listener thread stopping")
+        self.__server.logger.debug("Listener stopping")
 
     def run(self):
+        self.__server.logger.debug("Listener started")
         while not self.__stop:
-            message = sinope.message.message.read(self.__server)
+            message = sinope.messageCreator.read(self.__server)
+
             if message == None:
                 continue
+
             self.__server.logger.debug("Received message : %s", message)
-            if isinstance(message, sinope.message.messageAuthenticationKeyAnswer):
-                print ("--- %s" % message.getStatus())
-                print ("--- %s" % message.getBackout())
-                print ("--- %s" % sinope.str.bytesToString(message.getApiKey()))
+            self.__server.handleMessage(message)
 
-
-        self.__server.logger.debug("Listener thread stopped")
+        self.__server.logger.debug("Listener stopped")
 
 class server:
     def __init__(self, address, port):
-        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__messageHandler = []
         self.__address = address
         self.__port = port
+        self.state = 0
         self.__serverListener = serverListener(self)
-        self.__serverWatchdog = serverWatchdog(self)
+        self.__serverPingner = serverPingner(self)
+        self.__serveirWatchdog = serverWatchdog(self)
+        self.addMessageHandler(self.__serverPingner, sinope.message.messagePingAnswer.command)
         self.logger = logging.getLogger("sinope.server")
 
-    def connect(self):
-        self.__socket.connect((self.__address, self.__port))
-        self.logger.debug("Connected %s", self.__socket.getpeername())
-        self.__serverListener.start()
-        self.__serverWatchdog.start()
+        self.__serveirWatchdog.start()
         signal.signal(signal.SIGTERM, self.__terminate)
         signal.signal(signal.SIGINT, self.__terminate)
 
+    def addMessageHandler(self, handler, command):
+        self.__messageHandler.append((handler, command))
+
+    def handleMessage(self, message):
+        for h in self.__messageHandler:
+            if h[1] == message.getCommand():
+                h[0].handleMessage(message)
+
+    def connect(self):
+        connected = False
+        self.__closing = False
+        while not connected and not self.__closing:
+            try:
+                self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.__socket.connect((self.__address, self.__port))
+                self.__serverListener.start()
+                self.__serverPingner.start()
+                connected = True
+                self.logger.debug("Connected %s", self.__socket.getpeername())
+            except OSError:
+                self.logger.warning("Failed to connect retrying")
+                pass
+        self.state = 0
+
     def __terminate(self, _signo, _stack_frame):
         self.close()
+        self.logger.debug("terminated")
 
     def close(self):
         self.logger.debug("Stopping")
-        self.__serverListener.stop()
-        self.__serverWatchdog.stop()
-        self.__socket.close()
+        if not self.__closing:
+            self.__closing = True
+            if self.__serverListener.isAlive():
+                self.__serverListener.stop()
+            if self.__serverPingner.isAlive():
+                self.__serverPingner.stop()
+            if self.__serveirWatchdog.isAlive():
+                self.__serveirWatchdog.stop()
+            self.__socket.close()
+            self.logger.debug("Stopped")
+
+    def restart(self):
+        self.__serveirWatchdog.pause(True)
+        self.logger.warning("Restarting server")
+        if self.__serverListener.isAlive():
+            self.__serverListener.stop()
+        if self.__serverPingner.isAlive():
+            self.__serverPingner.stop()
+        self.__socket.close() 
+        self.__serverListener.join()
+        self.__serverPingner.join()
+        self.__serverListener = serverListener(self)
+        self.__serverPingner = serverPingner(self)
+        self.addMessageHandler(self.__serverPingner, sinope.message.messagePingAnswer.command)
+        self.connect()
+        self.state = 0
+        self.__serveirWatchdog.pause(False)
 
     def wait(self):
-        self.__serverListener.join()
-        self.__serverWatchdog.join()
+        self.logger.debug("Waiting for all thread to finish")
+        if self.__serverListener.isAlive():
+            self.__serverListener.join()
+        if self.__serverPingner.isAlive():
+            self.__serverPingner.join()
+        if self.__serveirWatchdog.isAlive():
+            self.__serveirWatchdog.join()
 
     def sendMessage(self, message):
         buff = None
@@ -90,20 +181,25 @@ class server:
             buff = message.getPayload()
         else:
             buff = messagei
-
-        while self.__socket.fileno() >= 0:
-            (rios, wios, xios) = select.select([], [self.__socket], [], 0.1)
-            if len(wios) > 0:
-                self.__socket.send(buff)
-                self.logger.debug("Send : %s", message)
-                break
+        try:
+            while self.__socket.fileno() >= 0:
+                (rios, wios, xios) = select.select([], [self.__socket], [], 0.1)
+                if len(wios) > 0:
+                    self.__socket.send(buff)
+                    self.logger.debug("Send : %s", message)
+                    break
+        except BrokenPipeError:
+            self.state = 1
 
     def read(self, size):
-        while self.__socket.fileno() >= 0:
-            (rios, wios, xios) = select.select([self.__socket], [], [], 0.1)
-            if len(rios) > 0:
-                data = self.__socket.recv(size)
-                if data == None:
-                    return ""
-                return data
-        return ""
+        try:
+            while self.__socket.fileno() >= 0:
+                (rios, wios, xios) = select.select([self.__socket], [], [], 0.1)
+                if len(rios) > 0:
+                    data = self.__socket.recv(size)
+                    if data == None:
+                        return ""
+                    return data
+            return ""
+        except ConnectionResetError:
+            self.state = 1

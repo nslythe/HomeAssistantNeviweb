@@ -1,1 +1,5 @@
-__all__ = ["server", "message", "crc"]
+__all__ = ["server", "messageCreator", "message", "crc"]
+
+import sinope.messageHandler
+
+messageHandler = messageHandler.messageHandler
