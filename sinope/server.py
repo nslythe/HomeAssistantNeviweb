@@ -190,11 +190,19 @@ class server:
             self.__serveirWatchdog.join()
 
     def sendMessage(self, message):
+        """
+        Send a message to the peer
+        
+        Arguments
+        ---------
+        message : sinope.message, bytes, bytearray
+            The message to send, if the message is a sinope.message message.getPayload() will be sent
+        """
         buff = None
         if isinstance(message, sinope.message.message):
             buff = message.getPayload()
         else:
-            buff = messagei
+            buff = message
         try:
             while self.__socket.fileno() >= 0:
                 (rios, wios, xios) = select.select([], [self.__socket], [], 0.1)
@@ -206,14 +214,19 @@ class server:
             self.state = ServerState.failed
 
     def read(self, size):
+        """
+        Read number of data in a binary string
+        
+        If an error ocured the string returned is empty
+        """
         try:
             while self.__socket.fileno() >= 0:
                 (rios, wios, xios) = select.select([self.__socket], [], [], 0.1)
                 if len(rios) > 0:
                     data = self.__socket.recv(size)
                     if data == None:
-                        return ""
+                        return b""
                     return data
-            return ""
+            return b""
         except ConnectionResetError:
             self.state = ServerState.failed
