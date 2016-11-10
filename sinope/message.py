@@ -75,23 +75,19 @@ class message(object):
             self.__command = struct.pack("<H", command)
         self.__refresh()
 
-    def getData(self, raw = False):
-        if raw:
-            return self.__data
-        else:
-            data = bytearray(self.__data)
-            data.reverse()
-            return data
+    def getRawData(self):
+        return self.__data
 
-    def setData(self, data, raw = False):
+    def getData(self, pt, length):
+        data = self.__data[pt : pt + length]
+        data.reverse()
+        return data
+
+    def setData(self, data):
         if not isinstance(data, bytes):
             raise Exception("Data argument not a bytes")
         if len(data) > 0:
-            if raw:
-                self.__data = bytearray(data)
-            else:
-                self.__data = bytearray(data)
-                self.__data.reverse()
+            self.__data = bytearray(data)
         self.__refresh()
 
     def getCrc(self):
@@ -166,14 +162,14 @@ class messageAuthenticationKeyAnswer(message):
         self.setCommand(messageAuthenticationKeyAnswer.command)
 
     def getStatus(self):
-        return struct.unpack("<bh8c", self.getData())[0]
+        return struct.unpack("<bH8B", self.getData())[0]
 
     def getBackout(self):
-        return struct.unpack("<bH8c", self.getData())[1]
+        return struct.unpack("<bH8B", self.getData())[1]
 
     def getApiKey(self):
         data = bytearray()
-        maping = struct.unpack(">bH8B", self.getData())
+        maping = struct.unpack("<bH8B", self.getData())
         data.append(maping[2])
         data.append(maping[3])
         data.append(maping[4])

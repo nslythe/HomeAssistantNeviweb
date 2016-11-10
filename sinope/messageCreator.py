@@ -73,7 +73,7 @@ def read(stream):
 
     message = sinope.messageCreator.create(command)
 
-    message.setData(data, raw = True)
+    message.setData(data)
 
     if message.getCrc() != crc:
         raise Exception("Message CRC does not match")

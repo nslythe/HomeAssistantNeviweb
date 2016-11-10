@@ -9,6 +9,10 @@ import sinope.sessionManager
 
 
 
+sinope.sessionManager.sessionManager()
+
+sys.exit()
+
 logger = logging.getLogger('sinope.server')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()

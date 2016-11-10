@@ -50,18 +50,11 @@ class messageTest(unittest.TestCase):
         message = sinope.message.message("test_message")
         message.setCommand(0xFF00)
         message.setData(b"\x12\x34\x56\x78\x9A\xBC\xDE")
-        self.assertEqual(message.getData(raw = False), bytearray.fromhex("123456789ABCDE"))
-        self.assertEqual(message.getData(raw = False), bytearray.fromhex("123456789ABCDE"))
-        self.assertEqual(message.getData(raw = True), bytearray.fromhex("DE BC 9A 78 56 34 12"))
-        self.assertEqual(message.getSize(), 7 + sinope.message.COMMAND_SIZE)
+        self.assertEqual(message.getRawData(), bytearray.fromhex("123456789ABCDE"))
+        self.assertEqual(message.getData(0, 2), bytearray.fromhex("3412"))
+        self.assertEqual(message.getData(3, 2), bytearray.fromhex("9A78"))
+        self.assertEqual(message.getSize(), 7 + sinope.messageCreator.COMMAND_SIZE)
         self.assertEqual(message.getSize(raw = True), b"\x09\x00")
-
-    def test_setData_3(self):
-        message = sinope.message.message("test_message")
-        message.setCommand(0xFF00)
-        message.setData(b"\xAA\xBB\xCC", raw = True)
-        self.assertEqual(message.getData(raw = False), bytearray.fromhex("CCBBAA"))
-        self.assertEqual(message.getData(raw = False), bytearray.fromhex("CCBBAA"))
 
     def test_setData_4(self):
         message = sinope.message.message("test_message")
