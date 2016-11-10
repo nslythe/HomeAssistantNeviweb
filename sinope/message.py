@@ -24,11 +24,8 @@ class message(object):
         message
             The message created or None if creation failed
         """
-        msg = None
-        command = struct.unpack("<H", commandRaw)[0]
         msg = message("UnknownCommand")
         msg.setCommand(commandRaw, raw = True)
-
         return msg
 
     def read(stream):
@@ -71,9 +68,6 @@ class message(object):
 
         message = sinope.message.message.create(command)
         
-        if message == None:
-            raise Exception("Unable to create message from command")
-            
         message.setData(data, raw = True)
         
         if message.getCrc() != crc:

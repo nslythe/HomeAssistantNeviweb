@@ -24,6 +24,8 @@ class messageTest(unittest.TestCase):
     def test_setCommand_3(self):
         with self.assertRaises(Exception):
             message.setCommand("test")
+        with self.assertRaises(Exception):
+            message.setCommand("test", raw = True)
 
     def test_setCommand_4(self):
         message = sinope.message.message("test_message")
@@ -38,7 +40,7 @@ class messageTest(unittest.TestCase):
     def test_setCommand_6(self):
         with self.assertRaises(Exception):
             message.setCommand(bytearray.fromhex("00FF"))
-
+   
     def test_setData_1(self):
         message = sinope.message.message("test_message")
         with self.assertRaises(Exception):
@@ -52,6 +54,7 @@ class messageTest(unittest.TestCase):
         self.assertEqual(message.getData(raw = False), bytearray.fromhex("123456789ABCDE"))
         self.assertEqual(message.getData(raw = True), bytearray.fromhex("DE BC 9A 78 56 34 12"))
         self.assertEqual(message.getSize(), 7 + sinope.message.COMMAND_SIZE)
+        self.assertEqual(message.getSize(raw = True), b"\x09\x00")
 
     def test_setData_3(self):
         message = sinope.message.message("test_message")
@@ -59,3 +62,20 @@ class messageTest(unittest.TestCase):
         message.setData(b"\xAA\xBB\xCC", raw = True)
         self.assertEqual(message.getData(raw = False), bytearray.fromhex("CCBBAA"))
         self.assertEqual(message.getData(raw = False), bytearray.fromhex("CCBBAA"))
+
+    def test_setData_4(self):
+        message = sinope.message.message("test_message")
+        with self.assertRaises(Exception):
+            message.setData(b"\xAA\xBB\xCC", raw = True)
+
+    def test_get_payLoad_1(self):
+        message = sinope.message.message("test_message")
+        message.setCommand(0xFF00)
+        message.setData(b"\x12")
+        self.assertEqual(str(message), "test_message 5500 | 0300 | 00ff | 12 | 33")
+        self.assertEqual(message.getPayload(), b"\x55\x00\x03\x00\x00\xff\x12\x33")
+
+    def test_get_payLoad_2(self):
+        message = sinope.message.message("test_message")
+        message.setCommand(0xFF00)
+        self.assertEqual(message.getPayload(), b"\x55\x00\x02\x00\x00\xff\xba")
