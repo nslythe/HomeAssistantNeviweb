@@ -162,21 +162,11 @@ class messageAuthenticationKeyAnswer(message):
         self.setCommand(messageAuthenticationKeyAnswer.command)
 
     def getStatus(self):
-        return struct.unpack("<bH8B", self.getData())[0]
+        return struct.unpack("<B", self.getData(0,1))[0]
 
-    def getBackout(self):
-        return struct.unpack("<bH8B", self.getData())[1]
+    def getBackoff(self):
+        return struct.unpack("<H", self.getData(1,2))[0]
 
     def getApiKey(self):
-        data = bytearray()
-        maping = struct.unpack("<bH8B", self.getData())
-        data.append(maping[2])
-        data.append(maping[3])
-        data.append(maping[4])
-        data.append(maping[5])
-        data.append(maping[6])
-        data.append(maping[7])
-        data.append(maping[8])
-        data.append(maping[9])
-        return data
+        return self.getData(3,8)
 
