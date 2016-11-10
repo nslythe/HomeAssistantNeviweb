@@ -1,4 +1,4 @@
-import logging
+import enum
 import select
 import signal
 import sys
@@ -9,6 +9,7 @@ import time
 import sinope.message
 import sinope.messageCreator
 import sinope.str
+import sinope.logger
 
 class serverWatchdog(threading.Thread):
     def __init__(self, server):
@@ -28,8 +29,9 @@ class serverWatchdog(threading.Thread):
         self.__server.logger.debug("Watchdog started")
         while not self.__stop:
             if not self.__pause:
-                if self.__server.state != 0:
+                if self.__server.state != ServerState.connected:
                     self.__server.restart()
+
             time.sleep(0.1)
         self.__server.logger.debug("Watchdog stopped")
 
@@ -61,7 +63,9 @@ class serverPingner(threading.Thread, sinope.messageHandler):
                     self.__server.logger.warning("Server did not respond for while")
                     self.__lastWarningPing = time.time()
             if time.time() - self.__lastReceivedPingTime >= self.__pingDelay * 4:
-                self.__server.state = 1
+                self.__server.logger.error("Server did not respond for while")
+                self.__server.state = ServerState.failed
+                self.__stop = True
 
             time.sleep(0.1)
         self.__server.logger.debug("Pigner stopped")
@@ -92,19 +96,24 @@ class serverListener(threading.Thread, sinope.messageHandler):
 
         self.__server.logger.debug("Listener stopped")
 
+class ServerState(enum.Enum):
+    initialized = 0
+    connected = 1
+    failed = 2
+    closed = 3
+
 class server:
     def __init__(self, address, port):
         self.__messageHandler = []
         self.__address = address
         self.__port = port
-        self.state = 0
+        self.state = ServerState.initialized
         self.__serverListener = serverListener(self)
         self.__serverPingner = serverPingner(self)
         self.__serveirWatchdog = serverWatchdog(self)
         self.addMessageHandler(self.__serverPingner, sinope.message.messagePingAnswer.command)
-        self.logger = logging.getLogger("sinope.server")
+        self.logger = sinope.logger.logger
 
-        self.__serveirWatchdog.start()
         signal.signal(signal.SIGTERM, self.__terminate)
         signal.signal(signal.SIGINT, self.__terminate)
 
@@ -123,14 +132,19 @@ class server:
             try:
                 self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.__socket.connect((self.__address, self.__port))
-                self.__serverListener.start()
-                self.__serverPingner.start()
-                connected = True
+                self.state = ServerState.connected
                 self.logger.debug("Connected %s", self.__socket.getpeername())
+                connected = True
+                if not self.__serverListener.isAlive():
+                    self.__serverListener.start()
+                if not self.__serverPingner.isAlive():
+                    self.__serverPingner.start()
+                if not self.__serveirWatchdog.isAlive():
+                    self.__serveirWatchdog.start()
             except OSError:
                 self.logger.warning("Failed to connect retrying")
                 pass
-        self.state = 0
+
 
     def __terminate(self, _signo, _stack_frame):
         self.close()
@@ -147,6 +161,7 @@ class server:
             if self.__serveirWatchdog.isAlive():
                 self.__serveirWatchdog.stop()
             self.__socket.close()
+            self.state = ServerState.closed
             self.logger.debug("Stopped")
 
     def restart(self):
@@ -163,11 +178,10 @@ class server:
         self.__serverPingner = serverPingner(self)
         self.addMessageHandler(self.__serverPingner, sinope.message.messagePingAnswer.command)
         self.connect()
-        self.state = 0
         self.__serveirWatchdog.pause(False)
 
     def wait(self):
-        self.logger.debug("Waiting for all thread to finish")
+        self.logger.debug("Waiting for all server threads to finish")
         if self.__serverListener.isAlive():
             self.__serverListener.join()
         if self.__serverPingner.isAlive():
@@ -189,7 +203,7 @@ class server:
                     self.logger.debug("Send : %s", message)
                     break
         except BrokenPipeError:
-            self.state = 1
+            self.state = ServerState.failed
 
     def read(self, size):
         try:
@@ -202,4 +216,4 @@ class server:
                     return data
             return ""
         except ConnectionResetError:
-            self.state = 1
+            self.state = ServerState.failed

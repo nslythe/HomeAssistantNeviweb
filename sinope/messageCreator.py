@@ -1,4 +1,3 @@
-import inspect
 import sinope.message
 
 CRC_SIZE = 1
