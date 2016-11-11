@@ -150,7 +150,9 @@ class messageAuthenticationKey(message):
         self.setCommand(messageAuthenticationKey.command)
 
     def setKey(self, key):
-        self.setData(bytes(bytearray.fromhex(key)))
+        data = bytearray.fromhex(key)
+        data.reverse()
+        self.setData(bytes(data))
  
 
 class messageAuthenticationKeyAnswer(message):

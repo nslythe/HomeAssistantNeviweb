@@ -40,7 +40,7 @@ class serverPingner(threading.Thread, sinope.messageHandler):
         threading.Thread.__init__(self)
         self.__server = server
         self.__stop = False
-        self.__pingDelay = 2
+        self.__pingDelay = 20
         self.__lastPingTime = 0
         self.__lastReceivedPingTime = 0
         self.__lastWarningPing = 0
