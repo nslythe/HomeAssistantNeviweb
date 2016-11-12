@@ -52,11 +52,12 @@ class sessionManager(sinope.messageHandler.messageHandler):
         if not self.isAuthenticated():
             self.__authenticateEvent.clear()
             message = sinope.message.messageAuthenticationKey()
-            message.setKey(hardwareId)
+            message.setId(hardwareId)
             self.__server.sendMessage(message)
             self.__authenticateEvent.wait()
-        
+            sinope.logger.logger.info("Sinope session authenticated")        
 
     def login(self):
         if not self.isAuthenticated():
             raise Exception("Not authenticated")
+        

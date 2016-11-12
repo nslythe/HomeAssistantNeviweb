@@ -44,27 +44,27 @@ class messageTest(unittest.TestCase):
     def test_setData_1(self):
         message = sinope.message.message("test_message")
         with self.assertRaises(Exception):
-            message.setData("dsdasdas")
+            message.setRawData("dsdasdas")
 
     def test_setData_2(self):
         message = sinope.message.message("test_message")
         message.setCommand(0xFF00)
-        message.setData(b"\x12\x34\x56\x78\x9A\xBC\xDE")
-        self.assertEqual(message.getRawData(), bytearray.fromhex("123456789ABCDE"))
-        self.assertEqual(message.getData(0, 2), bytearray.fromhex("3412"))
-        self.assertEqual(message.getData(3, 2), bytearray.fromhex("9A78"))
+        message.setDataRaw(b"\x12\x34\x56\x78\x9A\xBC\xDE")
+        self.assertEqual(message.getDataRaw(), bytearray.fromhex("123456789ABCDE"))
+        self.assertEqual(message.getDataFormat("H", 0)[0], 13330)
+        self.assertEqual(message.getDataFormat("H", 3)[0], 39544)
         self.assertEqual(message.getSize(), 7 + sinope.messageCreator.COMMAND_SIZE)
         self.assertEqual(message.getSize(raw = True), b"\x09\x00")
 
     def test_setData_4(self):
         message = sinope.message.message("test_message")
         with self.assertRaises(Exception):
-            message.setData(b"\xAA\xBB\xCC", raw = True)
+            message.setRawData(b"\xAA\xBB\xCC", raw = True)
 
     def test_get_payLoad_1(self):
         message = sinope.message.message("test_message")
         message.setCommand(0xFF00)
-        message.setData(b"\x12")
+        message.setDataRaw(b"\x12")
         self.assertEqual(str(message), "test_message 5500 | 0300 | 00ff | 12 | 33")
         self.assertEqual(message.getPayload(), b"\x55\x00\x03\x00\x00\xff\x12\x33")
 

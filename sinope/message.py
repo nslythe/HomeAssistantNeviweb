@@ -16,7 +16,7 @@ class message(object):
         self.__name = name
         self.__size = None
         self.__command = None
-        self.__data = None
+        self.__data = bytearray()
         self.__crc = None
 
     def clone(self, other):
@@ -75,20 +75,38 @@ class message(object):
             self.__command = struct.pack("<H", command)
         self.__refresh()
 
-    def getRawData(self):
-        return self.__data
+    def getDataFormat(self, fmt, offset):
+        strFormat = "<%s" % fmt
+        return struct.unpack_from(strFormat, self.__data, offset)
 
-    def getData(self, pt, length):
+    def getDataBuffer(self, pt, length):
         data = self.__data[pt : pt + length]
         data.reverse()
         return data
 
-    def setData(self, data):
-        if not isinstance(data, bytes):
+    def getDataRaw(self):
+        return self.__data
+
+    def setDataFormat(self, fmt, offset, data):
+        strFormat = "<%s" % fmt
+        struct.pack_into(strFormat, self.__data, offset, data)
+        self.__refresh()
+
+    def setDataBuffer(self, data, offset):
+        if not isinstance(data, bytes) and not isinstance(data, bytearray):
+            raise Exception("Data argument not a bytes")
+        if len(data) > 0:
+            data.reverse()
+            self.__data[offset:] = data
+        self.__refresh()
+
+    def setDataRaw(self, data):
+        if not isinstance(data, bytes) and not isinstance(data, bytearray):
             raise Exception("Data argument not a bytes")
         if len(data) > 0:
             self.__data = bytearray(data)
         self.__refresh()
+
 
     def getCrc(self):
         return self.__crc
@@ -149,10 +167,8 @@ class messageAuthenticationKey(message):
         super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
         self.setCommand(messageAuthenticationKey.command)
 
-    def setKey(self, key):
-        data = bytearray.fromhex(key)
-        data.reverse()
-        self.setData(bytes(data))
+    def setId(self, id):
+        self.setDataBuffer(bytearray.fromhex(id), 0)
  
 
 class messageAuthenticationKeyAnswer(message):
@@ -164,11 +180,29 @@ class messageAuthenticationKeyAnswer(message):
         self.setCommand(messageAuthenticationKeyAnswer.command)
 
     def getStatus(self):
-        return struct.unpack("<B", self.getData(0,1))[0]
+        return self.getDataFormat("B", 0)[0]
 
     def getBackoff(self):
-        return struct.unpack("<H", self.getData(1,2))[0]
+        return self.getDataFormat("H", 1)[0]
 
     def getApiKey(self):
-        return self.getData(3,8)
+        return self.getDataBuffer(3,8)
+
+class messageLogin(message):
+    command = 0x0110
+    name = "ApiLogin"
+    
+    def __init__(self):
+        super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
+        self.setCommand(messageAuthenticationKey.command)
+
+    def setId(self, id):
+        data = bytearray.fromhex(id)
+        data.reverse()
+        self.setRawData(bytes(data))
+
+    def setApiKey(self, apiKey):
+        data = bytearray.fromhex(apiKey)
+        data.reverse()
+        self.setRawData(bytes(data))
 
