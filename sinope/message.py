@@ -89,11 +89,18 @@ class message(object):
 
     def setDataFormat(self, fmt, offset, data):
         strFormat = "<%s" % fmt
+        neededSize = offset + struct.calcsize(strFormat)
+        if neededSize > len(self.__data):
+            for x in range(len(self.__data), neededSize):
+                self.__data.append(0)
+
         struct.pack_into(strFormat, self.__data, offset, data)
         self.__refresh()
 
     def setDataBuffer(self, data, offset):
-        if not isinstance(data, bytes) and not isinstance(data, bytearray):
+        if isinstance(data, bytes):
+            data = bytearray(data)
+        if not isinstance(data, bytearray):
             raise Exception("Data argument not a bytes")
         if len(data) > 0:
             data.reverse()

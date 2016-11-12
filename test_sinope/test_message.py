@@ -61,6 +61,20 @@ class messageTest(unittest.TestCase):
         with self.assertRaises(Exception):
             message.setRawData(b"\xAA\xBB\xCC", raw = True)
 
+    def test_setData_5(self):
+        message = sinope.message.message("test_message")
+        message.setCommand(0xFF00)
+        message.setDataFormat("H", 0, 10)
+        self.assertEqual(message.getDataFormat("H", 0,)[0], 10)
+        self.assertEqual(message.getDataBuffer(0, 2), b'\x00\x0A')
+        self.assertEqual(message.getDataRaw(), b'\x0A\x00')
+        message.setDataFormat("H", 2, 20)
+        self.assertEqual(message.getDataFormat("H", 0,)[0], 10)
+        self.assertEqual(message.getDataFormat("H", 2,)[0], 20)
+        message.setDataBuffer(b"\x11\x22\x33\x44\x55", 4)
+        self.assertEqual(message.getDataBuffer(4, 5), b'\x11\x22\x33\x44\x55')
+        
+
     def test_get_payLoad_1(self):
         message = sinope.message.message("test_message")
         message.setCommand(0xFF00)
