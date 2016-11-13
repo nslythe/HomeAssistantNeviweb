@@ -1,9 +1,20 @@
+import enum
 import inspect
 import struct
 import sys
 import sinope.crc
 import sinope.str
 import sinope.messageCreator
+
+class DataType(enum.Enum):
+    char = "c"
+    byte = "b"
+    ubyte = "B"
+    short = "h"
+    ushort = "H"
+    integer = "i"
+    uinteger = "I"
+
 
 class message(object):
     def getSizeFromRawData(size):
@@ -58,25 +69,35 @@ class message(object):
         else:
             return sinope.message.message.getSizeFromRawData(self.__size)
 
-    def getCommand(self, raw = False):
-        if raw:
-            return self.__command
-        else:
-            return struct.unpack("<H", self.__command)[0]
+    def getCommandRaw(self):
+        return bytearray(self.__command)
 
-    def setCommand(self, command, raw = False):
-        if raw:
-            if not isinstance(command, bytes):
-                raise Exception("Command argument not a bytes")
-            self.__command = command
-        else:
-            if not isinstance(command, int):
-                raise Exception("Command argument not a int")
-            self.__command = struct.pack("<H", command)
+    def getCommand(self):
+        command = bytearray(self.__command)
+        command.reverse()
+        return command
+
+    def setCommandRaw(self, command):
+        if isinstance(command, bytes):
+            command = bytearray(command)
+        if not isinstance(command, bytearray):
+            raise Exception("Command argument not a bytes")
+        self.__command = command
         self.__refresh()
 
-    def getDataFormat(self, fmt, offset):
-        strFormat = "<%s" % fmt
+    def setCommand(self, command):
+        if isinstance(command, bytes):
+            command = bytearray(command)
+        if not isinstance(command, bytearray):
+            raise Exception("Command argument not a bytes")
+        self.__command = command
+        self.__command.reverse()
+        self.__refresh()
+
+    def getDataFormat(self, dataType, offset):
+        if not isinstance(dataType, DataType):
+            raise Exception("Valid datatype expected")
+        strFormat = "<%s" % dataType.value
         return struct.unpack_from(strFormat, self.__data, offset)
 
     def getDataBuffer(self, pt, length):
@@ -87,8 +108,10 @@ class message(object):
     def getDataRaw(self):
         return self.__data
 
-    def setDataFormat(self, fmt, offset, data):
-        strFormat = "<%s" % fmt
+    def setDataFormat(self, dataType, offset, data):
+        if not isinstance(dataType, DataType):
+            raise Exception("Valid datatype expected")
+        strFormat = "<%s" % dataType.value
         neededSize = offset + struct.calcsize(strFormat)
         if neededSize > len(self.__data):
             for x in range(len(self.__data), neededSize):
@@ -151,7 +174,7 @@ class message(object):
         return s
 
 class messagePing(message):
-    command = 0x0012
+    command = b"\x00\x12"
     name = "Ping"
     
     def __init__(self):
@@ -159,7 +182,7 @@ class messagePing(message):
         self.setCommand(messagePing.command)
 
 class messagePingAnswer(message):
-    command = 0x0013
+    command = b"\x00\x13"
     name = "PingReply"
     
     def __init__(self):
@@ -167,7 +190,7 @@ class messagePingAnswer(message):
         self.setCommand(messagePingAnswer.command)
         
 class messageAuthenticationKey(message):
-    command = 0x010A
+    command = b"\x01\x0A"
     name = "AuthenticationKey"
     
     def __init__(self):
@@ -179,7 +202,7 @@ class messageAuthenticationKey(message):
  
 
 class messageAuthenticationKeyAnswer(message):
-    command = 0x010B
+    command = b"\x01\x0B"
     name = "AuthenticationKeyReply"
     
     def __init__(self):
@@ -187,16 +210,16 @@ class messageAuthenticationKeyAnswer(message):
         self.setCommand(messageAuthenticationKeyAnswer.command)
 
     def getStatus(self):
-        return self.getDataFormat("B", 0)[0]
+        return self.getDataFormat(DataType.ubyte, 0)[0]
 
     def getBackoff(self):
-        return self.getDataFormat("H", 1)[0]
+        return self.getDataFormat(DataType.ushort, 1)[0]
 
     def getApiKey(self):
         return self.getDataBuffer(3,8)
 
 class messageLogin(message):
-    command = 0x0110
+    command = b"\x01\x10"
     name = "ApiLogin"
     
     def __init__(self):

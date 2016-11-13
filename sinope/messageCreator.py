@@ -22,7 +22,7 @@ def create(commandRaw):
         The message created or None if creation failed
     """
     msg = sinope.message.message("UnknownCommand")
-    msg.setCommand(commandRaw, raw = True)
+    msg.setCommandRaw(commandRaw)
 
     for c in sinope.message.message.__subclasses__():
         if c.command == msg.getCommand() and type(msg) != c:
