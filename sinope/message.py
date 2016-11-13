@@ -210,7 +210,7 @@ class messageAuthenticationKeyAnswer(message):
         self.setCommand(messageAuthenticationKeyAnswer.command)
 
     def getStatus(self):
-        return self.getDataFormat(DataType.ubyte, 0)[0]
+        return self.getDataFormat(DataType.byte, 0)[0]
 
     def getBackoff(self):
         return self.getDataFormat(DataType.ushort, 1)[0]
@@ -223,16 +223,44 @@ class messageLogin(message):
     name = "ApiLogin"
     
     def __init__(self):
-        super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
-        self.setCommand(messageAuthenticationKey.command)
+        super(messageLogin, self).__init__(messageLogin.name)
+        self.setCommand(messageLogin.command)
 
     def setId(self, id):
         data = bytearray.fromhex(id)
-        data.reverse()
-        self.setRawData(bytes(data))
+        self.setDataBuffer(bytes(data), 0)
+
+    def getId(self):
+        return self.getDataBuffer(0, 8)
 
     def setApiKey(self, apiKey):
-        data = bytearray.fromhex(apiKey)
-        data.reverse()
-        self.setRawData(bytes(data))
+        self.setDataBuffer(apiKey, 8)
 
+    def getApiKey(self):
+        return self.getDataBuffer(8, 8)
+
+class messageLoginAnswer(message):
+    command = b"\x01\x11"
+    name = "ApiLoginAnswer"
+    
+    def __init__(self):
+        super(messageLoginAnswer, self).__init__(messageLoginAnswer.name)
+        self.setCommand(messageLoginAnswer.command)
+
+    def getStatus(self):
+        return self.getDataFormat(DataType.byte, 0)[0]
+
+    def getStatus(self):
+        return self.getDataFormat(DataType.ushort, 1)[0]
+
+    def getVersionMajor(self):
+        return self.getDataFormat(DataType.ubyte, 3)[0]
+
+    def getVersionMinor(self):
+        return self.getDataFormat(DataType.ubyte, 4)[0]
+
+    def getVersionBug(self):
+        return self.getDataFormat(DataType.ubyte, 5)[0]
+
+    def getDeviceId(self):
+        return self.getDataBuffer(6,4)

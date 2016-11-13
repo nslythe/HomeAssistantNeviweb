@@ -9,10 +9,6 @@ import sinope.sessionManager
 
 
 
-# message = sinope.message.messageAuthenticationKey()
-# message.setKey(sys.argv[1])
-
-
 server = sinope.server.server("10.1.0.152", 4550)
 server.connect()
 
