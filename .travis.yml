@@ -4,7 +4,10 @@ python:
   - "3.4"
 install:
   - pip install coveralls
+  - pip install sphinx
 # command to run tests
-script: coverage run --source=sinope test.py
+script:
+  - coverage run --source=sinope test.py
+  - sphinx-apidoc -o doc/ sinope/
 after_success:
-  coveralls
+  - coveralls
