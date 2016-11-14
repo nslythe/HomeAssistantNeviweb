@@ -264,3 +264,12 @@ class messageLoginAnswer(message):
 
     def getDeviceId(self):
         return self.getDataBuffer(6,4)
+
+class messageDeviceLinkReport(message):
+    command = b"\x01\x16"
+    name = "DeviceLinkReport"
+
+    def __init__(self):
+        super(messageDeviceLinkReport, self).__init__(messageDeviceLinkReport.name)
+        self.setCommand(messageDeviceLinkReport.command)
+        
