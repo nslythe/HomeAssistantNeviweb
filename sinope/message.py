@@ -6,172 +6,63 @@ import sys
 import sinope.crc
 import sinope.str
 import sinope.messageCreator
+import sinope.dataBuffer
 
-class DataType(enum.Enum):
-    char = "c"
-    byte = "b"
-    ubyte = "B"
-    short = "h"
-    ushort = "H"
-    integer = "i"
-    uinteger = "I"
-
-
-class message(object):
+class message(sinope.dataBuffer.dataBuffer):
     def getSizeFromRawData(size):
         return struct.unpack("<H", size)[0]
 
     def __init__(self, name):
+        super(message, self).__init__()
         if not isinstance(name, str):
             raise Exception("name argument not a string")
-        self.__header = struct.pack("<BB", 0x55, 0x00)
+        self.__refreshingSize = False
         self.__name = name
-        self.__size = None
-        self.__command = None
-        self.__data = bytearray()
-        self.__crc = None
+        super(message, self).setData(0, b"\x55")
+        super(message, self).setData(1, b"\x00")
+        super(message, self).setData(2, 0, sinope.dataBuffer.DataType.ushort)
 
     def clone(self, other):
-        self.__size = other.__size
-        self.__command = other.__command
-        self.__data = other.__data
-        self.__crc = other.__crc
-
-    def __refreshSize(self):
-        if self.__command == None:
-            raise Exception("Command not set")
-        tmpSize = 0
-        tmpSize += len(self.__command)
-        if self.__data != None:
-            tmpSize += len(self.__data);
-        self.__size = struct.pack("<H", tmpSize)
-
-    def __refreshCrc(self):
-        if self.__command == None:
-            raise Exception("Command not set")
-        if self.__size == None:
-            raise Exception("Size not set")
-        crc = sinope.crc.crc8()
-        data = self.__header + self.__size + self.__command
-        if self.__data != None:
-            data += self.__data
-        self.__crc = struct.pack("<B", crc.crc(data))
-
-    def __refresh(self):
-        self.__refreshSize()
-        self.__refreshCrc()
+        super(message, self).clone(other)
+        self.name = other.__name
 
     def getName(self):
         return self.__name
 
-    def getSize(self, raw = False):
-        if raw:
-            return self.__size
-        else:
-            return sinope.message.message.getSizeFromRawData(self.__size)
-
     def getCommandRaw(self):
-        return bytearray(self.__command)
+        return bytearray(super(message, self).getDataRaw(4, 2))
 
     def getCommand(self):
-        command = bytearray(self.__command)
-        command.reverse()
-        return command
+        return bytearray(super(message, self).getData(4,2))
 
     def setCommandRaw(self, command):
-        if isinstance(command, bytes):
-            command = bytearray(command)
-        if not isinstance(command, bytearray):
-            raise Exception("Command argument not a bytes")
-        self.__command = command
-        self.__refresh()
+        super(message, self).setDataRaw(4, command)
 
     def setCommand(self, command):
-        if isinstance(command, bytes):
-            command = bytearray(command)
-        if not isinstance(command, bytearray):
-            raise Exception("Command argument not a bytes")
-        self.__command = command
-        self.__command.reverse()
-        self.__refresh()
+        super(message, self).setData(4, command)
 
-    def getDataFormat(self, dataType, offset):
-        if not isinstance(dataType, DataType):
-            raise Exception("Valid datatype expected")
-        strFormat = "<%s" % dataType.value
-        return struct.unpack_from(strFormat, self.__data, offset)
+    def setData(self, offset, data, dataType = None):
+        super(message, self).setData(offset + 6, data, dataType)
 
-    def getDataBuffer(self, pt, length):
-        data = self.__data[pt : pt + length]
-        data.reverse()
-        return data
-
-    def getDataRaw(self):
-        return self.__data
-
-    def setDataFormat(self, dataType, offset, data):
-        if not isinstance(dataType, DataType):
-            raise Exception("Valid datatype expected")
-        strFormat = "<%s" % dataType.value
-        neededSize = offset + struct.calcsize(strFormat)
-        if neededSize > len(self.__data):
-            for x in range(len(self.__data), neededSize):
-                self.__data.append(0)
-
-        struct.pack_into(strFormat, self.__data, offset, data)
-        self.__refresh()
-
-    def setDataBuffer(self, data, offset):
-        if isinstance(data, bytes):
-            data = bytearray(data)
-        if not isinstance(data, bytearray):
-            raise Exception("Data argument not a bytes")
-        if len(data) > 0:
-            data.reverse()
-            self.__data[offset:] = data
-        self.__refresh()
-
-    def setDataRaw(self, data):
-        if not isinstance(data, bytes) and not isinstance(data, bytearray):
-            raise Exception("Data argument not a bytes")
-        if len(data) > 0:
-            self.__data = bytearray(data)
-        self.__refresh()
-
-
-    def getCrc(self):
-        return self.__crc
+    def getData(self, offset, length):
+        return super(message, self).getData(offset + 6, length)
 
     def getPayload(self):
-        payload = bytearray()
-        payload += self.__header
-        payload += self.__size
-        payload += self.__command
-        if self.__data != None:
-            payload += self.__data
-        payload += self.__crc
+        payload = super(message, self).getDataRaw()
+        payload += self.getCrc()
         return payload 
+
+    def didRefresh(self):
+        if not self.__refreshingSize:
+            self.__refreshingSize = True
+            if self.getSize() >= 4:
+               super(message, self).setData(2, self.getSize() - 4, sinope.dataBuffer.DataType.ushort)
+            self.__refreshingSize = False
 
     def __str__(self):
         s = self.__name
         s += " " 
-        s += sinope.str.bytesToString(self.__header)
-
-        if self.__size != None:
-            s += " | "
-            s += sinope.str.bytesToString(self.__size)
-
-        if self.__command != None:
-            s += " | "
-            s += sinope.str.bytesToString(self.__command)
-
-        if self.__data != None:
-            s += " | "
-            s += sinope.str.bytesToString(self.__data)
-
-        if self.__crc != None:
-            s += " | "
-            s += sinope.str.bytesToString(self.__crc)
+        s += super(message, self).__str__()
         return s
 
 class messagePing(message):
@@ -199,7 +90,7 @@ class messageAuthenticationKey(message):
         self.setCommand(messageAuthenticationKey.command)
 
     def setId(self, id):
-        self.setDataBuffer(bytearray.fromhex(id), 0)
+        self.setData(0, bytearray.fromhex(id))
  
 
 class messageAuthenticationKeyAnswer(message):
@@ -207,17 +98,26 @@ class messageAuthenticationKeyAnswer(message):
     name = "AuthenticationKeyReply"
     
     def __init__(self):
-        message.__init__(self, messageAuthenticationKeyAnswer.name)
+        super(messageAuthenticationKeyAnswer, self).__init__(messageAuthenticationKeyAnswer.name)
         self.setCommand(messageAuthenticationKeyAnswer.command)
 
     def getStatus(self):
-        return self.getDataFormat(DataType.byte, 0)[0]
+        return self.getData(0, sinope.dataBuffer.DataType.byte)
+
+    def setStatus(self, status):
+        self.setData(0, status, sinope.dataBuffer.DataType.byte)
 
     def getBackoff(self):
-        return self.getDataFormat(DataType.ushort, 1)[0]
+        return self.getData(1, sinope.dataBuffer.DataType.ushort)
+
+    def setBackoff(self, backoff):
+        self.setData(1, backoff, sinope.dataBuffer.DataType.ushort)
 
     def getApiKey(self):
-        return self.getDataBuffer(3,8)
+        return self.getData(3, 8)
+
+    def setApiKey(self, apiKey):
+        self.setData(3, apiKey)
 
 class messageLogin(message):
     command = b"\x01\x10"
@@ -229,16 +129,16 @@ class messageLogin(message):
 
     def setId(self, id):
         data = bytearray.fromhex(id)
-        self.setDataBuffer(bytes(data), 0)
+        self.setData(0, data)
 
     def getId(self):
-        return self.getDataBuffer(0, 8)
+        return self.getData(0, 8)
 
     def setApiKey(self, apiKey):
-        self.setDataBuffer(apiKey, 8)
+        self.setData(8, apiKey)
 
     def getApiKey(self):
-        return self.getDataBuffer(8, 8)
+        return self.getData(8, 8)
 
 class messageLoginAnswer(message):
     command = b"\x01\x11"
@@ -299,4 +199,49 @@ class messageDataReadRequest(message):
     name = "DataReadRequest"
 
     def __init__(self):
-        self.__seq = getMessageSequence
+        super(messageDataReadRequest, self).__init__(messageDataReadRequest.name)
+        self.setCommand(messageDataReadRequest.command)
+        self.__setSequence(getMessageSequence())
+        self.__setRequestType(0)
+        self.__serReserve1(0)
+        self.__serReserve2(0)
+        self.__serReserve3(0)
+        self.__serReserve4(0)
+
+    def __setSequence(self, seq):
+        self.setData(0, seq, sinope.dataBuffer.DataType.uinteger)
+
+    def __setRequestType(self, requestType):
+        self.setData(4, requestType, sinope.dataBuffer.DataType.ubyte)
+
+    def __serReserve1(self, val):
+        self.setData(5, val, sinope.dataBuffer.DataType.ubyte)
+
+    def __serReserve2(self, val):
+        self.setData(6, val, sinope.dataBuffer.DataType.ubyte)
+
+    def __serReserve3(self, val):
+        self.setData(7, val, sinope.dataBuffer.DataType.ushort)
+
+    def __serReserve4(self, val):
+        self.setData(9, val, sinope.dataBuffer.DataType.ushort)
+
+    def setDeviceId(self, deviceId):
+        self.setData(11, deviceId)
+
+    def getSequence(self):
+        return self.getData(0, sinope.dataBuffer.DataType.uinteger)
+
+    def getDeviceId(self):
+        return self.getData(11,4)
+
+    def getApplicationDataSize(self):
+        return self.getData(15, sinope.dataBuffer.DataType.ubyte)
+
+    def getApplicationData(self):
+        appData = self.getData(16, getApplicationDataSize())
+        return applicationDataCreator.create(appData)
+
+    def setApplicationData(self, appData):
+        self.setData(DataType.ubyte, 15, appData.size)
+        self.setData(16, appData.data)
