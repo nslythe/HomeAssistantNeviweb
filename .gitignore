@@ -2,3 +2,5 @@
 *.pyc
 1q
 api.key
+build/
+
