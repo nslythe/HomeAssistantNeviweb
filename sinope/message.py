@@ -149,22 +149,22 @@ class messageLoginAnswer(message):
         self.setCommand(messageLoginAnswer.command)
 
     def getStatus(self):
-        return self.getDataFormat(DataType.byte, 0)[0]
+        return self.getDataFormat(0, sinope.dataBuffer.DataType.byte)
 
     def getStatus(self):
-        return self.getDataFormat(DataType.ushort, 1)[0]
+        return self.getData(1, sinope.dataBuffer.DataType.ushort)
 
     def getVersionMajor(self):
-        return self.getDataFormat(DataType.ubyte, 3)[0]
+        return self.getData(3, sinope.dataBuffer.DataType.ubyte)
 
     def getVersionMinor(self):
-        return self.getDataFormat(DataType.ubyte, 4)[0]
+        return self.getData(4, sinope.dataBuffer.DataType.ubyte)
 
     def getVersionBug(self):
-        return self.getDataFormat(DataType.ubyte, 5)[0]
+        return self.getData(5, sinope.dataBuffer.DataType.ubyte)
 
     def getDeviceId(self):
-        return self.getDataBuffer(6,4)
+        return self.getData(6,4)
 
 class messageDeviceLinkReport(message):
     command = b"\x01\x16"
