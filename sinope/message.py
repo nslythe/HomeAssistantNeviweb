@@ -1,5 +1,6 @@
 import enum
 import inspect
+import random
 import struct
 import sys
 import sinope.crc
@@ -273,3 +274,29 @@ class messageDeviceLinkReport(message):
         super(messageDeviceLinkReport, self).__init__(messageDeviceLinkReport.name)
         self.setCommand(messageDeviceLinkReport.command)
         
+    def getStatus(self):
+        return self.getDataFormat(DataType.byte, 0)[0]
+
+    def getDeviceId(self):        
+        return self.getDataBuffer(1,4)
+
+messagesequence = None
+def getMessageSequence():
+    global messagesequence
+    if messagesequence == None:
+        random.seed()
+        messagesequence = random.randrange(0, pow(2, 32) -1)
+    else:
+        messagesequence += 1
+
+    if messagesequence > pow(2,32) - 1:
+        messagesequence = 0
+
+    return messagesequence
+
+class messageDataReadRequest(message):
+    command = b"\x02\x40"
+    name = "DataReadRequest"
+
+    def __init__(self):
+        self.__seq = getMessageSequence
