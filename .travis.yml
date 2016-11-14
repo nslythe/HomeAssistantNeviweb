@@ -6,6 +6,8 @@ install:
   - pip install coveralls
   - pip install sphinx
 # command to run tests
-script: coverage run --source=sinope test.py
+script:
+  - coverage run --source=sinope test.py
+  - sphinx-build -nW -b html -d _build/doctrees . _build/html
 after_success:
-  coveralls
+  - coveralls
