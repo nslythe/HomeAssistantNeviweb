@@ -13,3 +13,29 @@ class test_dataBuffer(unittest.TestCase):
         data = sinope.dataBuffer.dataBuffer()
         data.setData(0, b"\x00\x11")
         self.assertEqual(data.getDataRaw(0), b"\x11\x00")
+
+    def test_str_1(self):
+        data = sinope.dataBuffer.dataBuffer()
+        data.setData(0, b"\x00\x11")
+        self.assertEqual(str(data), "1100")
+
+    def test_setData_1(self):
+        data = sinope.dataBuffer.dataBuffer()
+        with self.assertRaises(Exception):
+            data.setData(0, 1)
+
+    def test_setData_2(self):
+        data = sinope.dataBuffer.dataBuffer()
+        with self.assertRaises(Exception):
+            data.setData(0, 1, 1)
+
+    def test_setData_3(self):
+        data = sinope.dataBuffer.dataBuffer()
+        with self.assertRaises(Exception):
+            data.setDataRaw(0, 1)
+
+    def test_setData_4(self):
+        data = sinope.dataBuffer.dataBuffer()
+        data.setDataRaw(0, b"\x00")
+        data.setDataRaw(len(data), b"\x11")
+

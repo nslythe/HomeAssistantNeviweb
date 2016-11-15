@@ -93,3 +93,5 @@ class dataBuffer(object):
     def __str__(self):
         return sinope.str.bytesToString(self.__data)
 
+    def __len__(self):
+        return len(self.__data)
