@@ -8,7 +8,5 @@ install:
 # command to run tests
 script:
   - coverage run --source=sinope test.py
-  - cd doc
-  - sphinx-build -b html . ../build/doc/
 after_success:
   - coveralls
