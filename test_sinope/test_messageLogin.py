@@ -12,7 +12,7 @@ class test_messageLogin(unittest.TestCase):
         message.setApiKey(b"\x11\x22\x33\x44\x55\x66\x77\x88")
         self.assertEqual(message.getApiKey(), b"\x11\x22\x33\x44\x55\x66\x77\x88")
 
-    def test_create_1(self):
+    def test_create_2(self):
         message = sinope.message.messageLoginAnswer()
         self.assertEqual(message.getCommand(), b"\x01\x11")
         message.setStatus(12)
