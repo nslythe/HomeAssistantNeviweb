@@ -12,8 +12,9 @@ class messageTest(unittest.TestCase):
 
     def test_setCommand_1(self):
         message = sinope.message.message("test_message")
-        message.setCommand(b"\xFF\xFF")
-        self.assertEqual(message.getCommand(), b"\xFF\xFF")
+        message.setCommand(b"\x44\x44")
+        self.assertEqual(message.getCommand(), b"\x44\x44")
+        self.assertEqual(str(message), "test_message 550002004444")
 
     def test_setCommand_2(self):
         message = sinope.message.message("test_message")
