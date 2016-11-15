@@ -90,7 +90,14 @@ class messageAuthenticationKey(message):
         self.setCommand(messageAuthenticationKey.command)
 
     def setId(self, id):
+        if not isinstance(id, str):
+            raise Exception("Id must be a str")
+        if len(id) != 16:
+            raise Exception("Id must be 8 length long")
         self.setData(0, bytearray.fromhex(id))
+
+    def getId(self):
+        return sinope.str.bytesToString(self.getData(0, 8))
  
 
 class messageAuthenticationKeyAnswer(message):
