@@ -39,10 +39,10 @@ class dataBuffer(object):
     def didRefresh(self):
         pass
 
-    def __checkSize(self, neededSize):
-        if neededSize > len(self.__data):
-            for x in range(len(self.__data), neededSize):
-                self.__data.append(0)
+#    def __checkSize(self, neededSize):
+#        if neededSize > len(self.__data):
+#            for x in range(len(self.__data), neededSize):
+#                self.__data.append(0)
     
     def getSize(self):
         return self.__size
