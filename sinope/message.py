@@ -88,6 +88,7 @@ class messageAuthenticationKey(message):
     def __init__(self):
         super(messageAuthenticationKey, self).__init__(messageAuthenticationKey.name)
         self.setCommand(messageAuthenticationKey.command)
+        self.setId("0000000000000000")
 
     def setId(self, id):
         if not isinstance(id, str):
@@ -133,6 +134,8 @@ class messageLogin(message):
     def __init__(self):
         super(messageLogin, self).__init__(messageLogin.name)
         self.setCommand(messageLogin.command)
+        self.setId("0000000000000000")
+        self.setApiKey(b"\x00\x00\x00\x00\x00\x00\x00\x00")
 
     def setId(self, id):
         data = bytearray.fromhex(id)
@@ -154,24 +157,48 @@ class messageLoginAnswer(message):
     def __init__(self):
         super(messageLoginAnswer, self).__init__(messageLoginAnswer.name)
         self.setCommand(messageLoginAnswer.command)
+        self.setStatus(0)
+        self.setBackoff(0)
+        self.setVersionMajor(0)
+        self.setVersionMinor(0)
+        self.setVersionBug(0)
+        self.setDeviceId(b"\x00\x00\x00\x00")
 
     def getStatus(self):
-        return self.getDataFormat(0, sinope.dataBuffer.DataType.byte)
+        return self.getData(0, sinope.dataBuffer.DataType.byte)
 
-    def getStatus(self):
+    def setStatus(self, status):
+        self.setData(0, status, sinope.dataBuffer.DataType.byte)
+
+    def getBackoff(self):
         return self.getData(1, sinope.dataBuffer.DataType.ushort)
+
+    def setBackoff(self, backoff):
+        self.setData(1, backoff, sinope.dataBuffer.DataType.ushort)
 
     def getVersionMajor(self):
         return self.getData(3, sinope.dataBuffer.DataType.ubyte)
 
+    def setVersionMajor(self, version):
+        self.setData(3, version, sinope.dataBuffer.DataType.ubyte)
+
     def getVersionMinor(self):
         return self.getData(4, sinope.dataBuffer.DataType.ubyte)
+
+    def setVersionMinor(self, version):
+        self.setData(4, version, sinope.dataBuffer.DataType.ubyte)
 
     def getVersionBug(self):
         return self.getData(5, sinope.dataBuffer.DataType.ubyte)
 
+    def setVersionBug(self, version):
+        self.setData(5, version, sinope.dataBuffer.DataType.ubyte)
+
     def getDeviceId(self):
         return self.getData(6,4)
+
+    def setDeviceId(self, deviceId):
+        self.setData(6,deviceId)
 
 class messageDeviceLinkReport(message):
     command = b"\x01\x16"
