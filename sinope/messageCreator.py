@@ -25,7 +25,7 @@ def create(commandRaw):
     msg.setCommandRaw(commandRaw)
 
     for c in sinope.message.message.__subclasses__():
-        if c.command == msg.getCommand() and type(msg) != c:
+        if hasattr(c, "command") and c.command == msg.getCommand() and type(msg) != c:
             obj = c()
             obj.clone(msg)
             return obj

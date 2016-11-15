@@ -21,6 +21,7 @@ class message(sinope.dataBuffer.dataBuffer):
         super(message, self).setData(0, b"\x55")
         super(message, self).setData(1, b"\x00")
         super(message, self).setData(2, 0, sinope.dataBuffer.DataType.ushort)
+        super(message, self).setData(4, b"\x00\x00")
 
     def clone(self, other):
         super(message, self).clone(other)
@@ -236,22 +237,24 @@ def getMessageSequence():
 
     return messagesequence
 
-class messageDataReadRequest(message):
-    command = b"\x02\x40"
-    name = "DataReadRequest"
+class messageDataRequest(message):
+    name = "UnknownDataRequest"
 
     def __init__(self):
-        super(messageDataReadRequest, self).__init__(messageDataReadRequest.name)
-        self.setCommand(messageDataReadRequest.command)
+        super(messageDataRequest, self).__init__(messageDataRequest.name)
         self.__setSequence(getMessageSequence())
         self.__setRequestType(0)
         self.__serReserve1(0)
         self.__serReserve2(0)
         self.__serReserve3(0)
         self.__serReserve4(0)
+        self.setDeviceId(b"\x00\x00\x00")
 
     def __setSequence(self, seq):
         self.setData(0, seq, sinope.dataBuffer.DataType.uinteger)
+
+    def getSequence(self):
+        return self.getData(0, sinope.dataBuffer.DataType.uinteger)
 
     def __setRequestType(self, requestType):
         self.setData(4, requestType, sinope.dataBuffer.DataType.ubyte)
@@ -271,19 +274,17 @@ class messageDataReadRequest(message):
     def setDeviceId(self, deviceId):
         self.setData(11, deviceId)
 
-    def getSequence(self):
-        return self.getData(0, sinope.dataBuffer.DataType.uinteger)
-
     def getDeviceId(self):
         return self.getData(11,4)
 
     def getApplicationDataSize(self):
         return self.getData(15, sinope.dataBuffer.DataType.ubyte)
 
+    def setApplicationData(self, appData):
+        self.setData(DataType.ubyte, 15, appData.size)
+        self.setData(16, appData.data)
+
     def getApplicationData(self):
         appData = self.getData(16, getApplicationDataSize())
         return applicationDataCreator.create(appData)
 
-    def setApplicationData(self, appData):
-        self.setData(DataType.ubyte, 15, appData.size)
-        self.setData(16, appData.data)
