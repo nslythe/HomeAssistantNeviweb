@@ -207,12 +207,20 @@ class messageDeviceLinkReport(message):
     def __init__(self):
         super(messageDeviceLinkReport, self).__init__(messageDeviceLinkReport.name)
         self.setCommand(messageDeviceLinkReport.command)
+        self.setStatus(0)
+        self.setDeviceId(b"\x00\x00\x00\x00")
         
     def getStatus(self):
-        return self.getDataFormat(DataType.byte, 0)[0]
+        return self.getData(0, sinope.dataBuffer.DataType.byte)
+
+    def setStatus(self, status):
+        self.setData(0, status, sinope.dataBuffer.DataType.byte)
 
     def getDeviceId(self):        
-        return self.getDataBuffer(1,4)
+        return self.getData(1,4)
+
+    def setDeviceId(self, deviceId):
+        self.setData(1, deviceId)
 
 messagesequence = None
 def getMessageSequence():
