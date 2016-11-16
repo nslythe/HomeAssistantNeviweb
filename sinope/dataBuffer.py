@@ -4,13 +4,12 @@ import sinope.crc
 import sinope.str
 
 class DataType(enum.Enum):
-    char = "c"
-    byte = "b"
-    ubyte = "B"
-    short = "h"
-    ushort = "H"
-    integer = "i"
-    uinteger = "I"
+    byte = "b"				# 1 s
+    ubyte = "B"				# 1 u
+    short = "h"				# 2 s
+    ushort = "H"			# 2 u
+    integer = "i"			# 4 s
+    uinteger = "I"			# 4 u
 
 
 class dataBuffer(object):
@@ -39,11 +38,6 @@ class dataBuffer(object):
     def didRefresh(self):
         pass
 
-#    def __checkSize(self, neededSize):
-#        if neededSize > len(self.__data):
-#            for x in range(len(self.__data), neededSize):
-#                self.__data.append(0)
-    
     def getSize(self):
         return self.__size
 

@@ -238,10 +238,8 @@ def getMessageSequence():
     return messagesequence
 
 class messageDataRequest(message):
-    name = "UnknownDataRequest"
-
-    def __init__(self):
-        super(messageDataRequest, self).__init__(messageDataRequest.name)
+    def __init__(self, name):
+        super(messageDataRequest, self).__init__(name)
         self.__setSequence(getMessageSequence())
         self.__setRequestType(0)
         self.__serReserve1(0)
@@ -281,10 +279,34 @@ class messageDataRequest(message):
         return self.getData(15, sinope.dataBuffer.DataType.ubyte)
 
     def setApplicationData(self, appData):
-        self.setData(DataType.ubyte, 15, appData.size)
-        self.setData(16, appData.data)
+        self.setData(15, appData.getSize(), sinope.dataBuffer.DataType.ubyte)
+        self.setData(16, appData.getDataRaw())
 
     def getApplicationData(self):
         appData = self.getData(16, getApplicationDataSize())
         return applicationDataCreator.create(appData)
+
+class messageDataRequestRead(messageDataRequest):
+    name = "messageDataRequestRead"
+    command = b"\x02\x40"
+
+    def __init__(self):
+        super(messageDataRequestRead, self).__init__(messageDataRequestRead.name)
+        self.setCommand(messageDataRequestRead.command)
+
+class messageDataRequestReport(messageDataRequest):
+    name = "messageDataRequestReport"
+    command = b"\x02\x42"
+
+    def __init__(self):
+        super(messageDataRequestReport, self).__init__(messageDataRequestReport.name)
+        self.setCommand(messageDataRequestReport.command)
+
+class messageDataRequestWrite(messageDataRequest):
+    name = "messageDataRequestWrite"
+    command = b"\x02\x44"
+
+    def __init__(self):
+        super(messageDataRequestWrite, self).__init__(messageDataRequestWrite.name)
+        self.setCommand(messageDataRequestWrite.command)
 
