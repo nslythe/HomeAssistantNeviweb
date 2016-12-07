@@ -7,6 +7,18 @@ HEADER_SIZE = 2
 SIZE_SIZE = 2
 COMMAND_SIZE = 2
 
+def getSubClassCommand(c, attrname, command):
+    returnClass = None
+    for subc in c.__subclasses__():
+        if hasattr(subc, attrname) and getattr(subc, attrname) == command:
+            returnClass = subc
+            break
+        else:
+            returnClass = getSubClassCommand(subc, attrname, command)
+            if returnClass != None:
+                break
+    return returnClass
+
 def create(commandRaw):
     """
     Create sinope.message.message from commandRaw.
@@ -24,11 +36,11 @@ def create(commandRaw):
     msg = sinope.message.message("UnknownCommand")
     msg.setCommandRaw(commandRaw)
 
-    for c in sinope.message.message.__subclasses__():
-        if hasattr(c, "command") and c.command == msg.getCommand() and type(msg) != c:
-            obj = c()
-            obj.clone(msg)
-            return obj
+    c = getSubClassCommand(sinope.message.message, "command", msg.getCommand())
+    if c != None:
+        obj = c()
+        obj.clone(msg)
+        return obj
     return msg
 
 
