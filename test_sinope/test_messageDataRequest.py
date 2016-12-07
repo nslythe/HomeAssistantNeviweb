@@ -9,3 +9,6 @@ class test_messageDataRequest(unittest.TestCase):
         self.assertNotEqual(msg1.getSequence(), msg2.getSequence())
         msg1.setDeviceId(b"\x11\x22\x33\x44")
         self.assertEqual(msg1.getDeviceId(), b"\x11\x22\x33\x44")
+
+    def test_getData_1(self):
+        pass
