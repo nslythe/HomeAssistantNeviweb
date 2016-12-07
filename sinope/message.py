@@ -6,6 +6,7 @@ import sys
 import sinope.crc
 import sinope.str
 import sinope.messageCreator
+import sinope.applicationDataCreator
 import sinope.dataBuffer
 
 class message(sinope.dataBuffer.dataBuffer):
@@ -283,8 +284,8 @@ class messageDataRequest(message):
         self.setData(16, appData.getDataRaw())
 
     def getApplicationData(self):
-        appData = self.getData(16, getApplicationDataSize())
-        return applicationDataCreator.create(appData)
+        appData = self.getDataRaw(16 + 6, self.getApplicationDataSize())
+        return sinope.applicationDataCreator.create(appData)
 
 class messageDataRequestRead(messageDataRequest):
     name = "messageDataRequestRead"

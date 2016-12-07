@@ -8,7 +8,6 @@ class test_outDoorTemperature(unittest.TestCase):
         appData = sinope.applicationData.outdoorTemperature()
         self.assertEqual(appData.getDataId(), b"\x00\x00\x02\x04")
         appData.setTemperature(10)
-        print (sinope.str.bytesToString(appData.getDataRaw()))
         self.assertEqual(appData.getTemperature(), 10)
         appData.setTemperature(-10)
         self.assertEqual(appData.getTemperature(), -10)

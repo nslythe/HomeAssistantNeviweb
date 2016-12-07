@@ -1,10 +1,10 @@
 import sinope.applicationData
 
-def create(data):
+def create(rawData):
     """
     """
     appData = sinope.applicationData.applicationData("UnknownApplicationData")
-    appData.setDataRaw(0, data)
+    appData.setDataRaw(0, rawData)
 
     for c in sinope.applicationData.applicationData.__subclasses__():
         if c.dataId == appData.getDataId():

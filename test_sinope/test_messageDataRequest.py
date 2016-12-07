@@ -18,4 +18,8 @@ class test_messageDataRequest(unittest.TestCase):
 
         self.assertEqual(msg.getCommand(), sinope.message.messageDataRequestRead.command)
         self.assertTrue(isinstance(msg, sinope.message.messageDataRequestRead))
-        pass
+
+
+        self.assertEqual(msg.getApplicationDataSize(), 4)
+        appData = msg.getApplicationData()
+        self.assertEqual(appData.getDataId(), b"\x00\x00\x02\x03")
