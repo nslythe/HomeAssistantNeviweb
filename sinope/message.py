@@ -241,7 +241,7 @@ def getMessageSequence():
 class messageDataRequest(message):
     def __init__(self, name):
         super(messageDataRequest, self).__init__(name)
-        self.__setSequence(getMessageSequence())
+        self.setSequence(getMessageSequence())
         self.__setRequestType(0)
         self.__serReserve1(0)
         self.__serReserve2(0)
@@ -249,7 +249,7 @@ class messageDataRequest(message):
         self.__serReserve4(0)
         self.setDeviceId(b"\x00\x00\x00")
 
-    def __setSequence(self, seq):
+    def setSequence(self, seq):
         self.setData(0, seq, sinope.dataBuffer.DataType.uinteger)
 
     def getSequence(self):
@@ -310,4 +310,54 @@ class messageDataRequestWrite(messageDataRequest):
     def __init__(self):
         super(messageDataRequestWrite, self).__init__(messageDataRequestWrite.name)
         self.setCommand(messageDataRequestWrite.command)
+
+class messageDataAnswer(message):
+    def __init__(self, name):
+        super(messageDataRequest, self).__init__(name)
+        self.setSequence(getMessageSequence())
+        self.setStatus(-1)
+
+    def setSequence(self, seq):
+        self.setData(0, seq, sinope.dataBuffer.DataType.uinteger)
+
+    def getSequence(self):
+        return self.getData(0, sinope.dataBuffer.DataType.uinteger)
+
+    def setStatus(self, status):
+        self.setData(4, status, sinope.dataBuffer.DataType.byte)
+
+    def getStatus(self):
+        return self.getData(4, sinope.dataBuffer.DataType.byte)
+
+    def setAttempt(self, attempt):
+        self.setData(5, attempt, sinope.dataBuffer.DataType.ubyte)
+
+    def getAttempt(self):
+        return self.getData(5, sinope.dataBuffer.DataType.ubyte)
+
+    def setMore(self, more):
+        self.setData(6, more, sinope.dataBuffer.DataType.ubyte)
+
+    def getMore(self):
+        return self.getData(6, sinope.dataBuffer.DataType.ubyte)
+
+    def setDeviceId(self, deviceId):
+        self.setData(7, deviceId)
+
+    def getDeviceId(self):
+        return self.getData(7,4)
+
+    def getApplicationDataSize(self):
+        return self.getData(11, sinope.dataBuffer.DataType.ubyte)
+
+    def setApplicationData(self, appData):
+        self.setData(11, appData.getSize(), sinope.dataBuffer.DataType.ubyte)
+        self.setData(12, appData.getDataRaw())
+
+    def getApplicationData(self):
+        appData = self.getDataRaw(12 + 6, self.getApplicationDataSize())
+        return sinope.applicationDataCreator.create(appData)
+
+
+
 
