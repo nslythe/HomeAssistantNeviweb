@@ -51,31 +51,32 @@ def read(stream):
 
     # read and validate header
     header = stream.read(HEADER_SIZE)
-    if header == None or header == "" or header[0] != HEADER55 or header[1] != HEADER00:
-        raise Exception("Header not valid")
+    if not header == None and not header == b'' and not len(header) < 2:
+        if header[0] != HEADER55 or header[1] != HEADER00:
+            raise Exception("Header not valid %s" % header)
 
-    # read and validate size
-    size = stream.read(SIZE_SIZE)
-    if size==None or size == "":
-        raise Exception("Unable to read size")
+        # read and validate size
+        size = stream.read(SIZE_SIZE)
+        if size==None or size == "":
+            raise Exception("Unable to read size")
 
-    # read and validate command
-    command = stream.read(COMMAND_SIZE)
-    if command == None or command == "":
-        raise Exception("Unable to read command")
+        # read and validate command
+        command = stream.read(COMMAND_SIZE)
+        if command == None or command == "":
+            raise Exception("Unable to read command")
 
-    # read data
-    data = stream.read(sinope.message.message.getSizeFromRawData(size) - COMMAND_SIZE)
+        # read data
+        data = stream.read(sinope.message.message.getSizeFromRawData(size) - COMMAND_SIZE)
 
-    # read crc
-    crc = stream.read(CRC_SIZE)
+        # read crc
+        crc = stream.read(CRC_SIZE)
 
-    message = sinope.messageCreator.create(command)
+        message = sinope.messageCreator.create(command)
 
-    message.setDataRaw(6, data)
+        message.setDataRaw(6, data)
 
-    if message.getCrc() != crc:
-        raise Exception("Message CRC does not match")
+        if message.getCrc() != crc:
+            raise Exception("Message CRC does not match")
 
     return message
 

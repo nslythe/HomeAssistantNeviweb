@@ -230,3 +230,5 @@ class server:
             return b""
         except ConnectionResetError:
             self.state = ServerState.failed
+        except OSError:
+            self.state = ServerState.failed
