@@ -1,4 +1,4 @@
-__all__ = ["server", "messageCreator", "message", "crc"]
+__all__ = ["server", "messageCreator", "message", "crc", "classBrowser"]
 
 """
 Module documentation
