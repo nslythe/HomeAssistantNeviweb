@@ -7,10 +7,6 @@ class applicationObjectManager(object):
         server.addMessageHandler(self, sinope.message.messageDataAnswerWrite.command)
 
     def handleMessage(self, message):
-        print ("=================================")
-        print (message)
-        print (message.getSequence())
-        print (message.getStatus())
         if message.getStatus() == 10:
             appData = message.getApplicationData()
             print (type(appData))
