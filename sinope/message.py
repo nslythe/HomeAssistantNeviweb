@@ -281,7 +281,7 @@ class messageDataRequest(message):
 
     def setApplicationData(self, appData):
         self.setData(15, appData.getSize(), sinope.dataBuffer.DataType.ubyte)
-        self.setData(16, appData.getDataRaw())
+        self.setDataRaw(16 + 6, appData.getDataRaw())
 
     def getApplicationData(self):
         appData = self.getDataRaw(16 + 6, self.getApplicationDataSize())
@@ -294,6 +294,10 @@ class messageDataRequestRead(messageDataRequest):
     def __init__(self):
         super(messageDataRequestRead, self).__init__(messageDataRequestRead.name)
         self.setCommand(messageDataRequestRead.command)
+
+    def setApplicationData(self, appData):
+        self.setData(15, len(appData.getDataId()), sinope.dataBuffer.DataType.ubyte)
+        self.setData(16, appData.getDataId())
 
 class messageDataRequestReport(messageDataRequest):
     name = "messageDataRequestReport"
@@ -313,7 +317,7 @@ class messageDataRequestWrite(messageDataRequest):
 
 class messageDataAnswer(message):
     def __init__(self, name):
-        super(messageDataRequest, self).__init__(name)
+        super(messageDataAnswer, self).__init__(name)
         self.setSequence(getMessageSequence())
         self.setStatus(-1)
 
@@ -358,6 +362,27 @@ class messageDataAnswer(message):
         appData = self.getDataRaw(12 + 6, self.getApplicationDataSize())
         return sinope.applicationDataCreator.create(appData)
 
+class messageDataAnswerRead(messageDataAnswer):
+    name = "messageDataAnswerRead"
+    command = b"\x02\x41"
 
+    def __init__(self):
+        super(messageDataAnswerRead, self).__init__(messageDataAnswerRead.name)
+        self.setCommand(messageDataAnswerRead.command)
 
+class messageDataAnswerReport(messageDataAnswer):
+    name = "messageDataAnswerReport"
+    command = b"\x02\x43"
+
+    def __init__(self):
+        super(messageDataAnswerReport, self).__init__(messageDataAnswerReport.name)
+        self.setCommand(messageDataAnswerReport.command)
+
+class messageDataAnswerWrite(messageDataAnswer):
+    name = "messageDataAnswerWrite"
+    command = b"\x02\x45"
+
+    def __init__(self):
+        super(messageDataAnswerWrite, self).__init__(messageDataAnswerWrite.name)
+        self.setCommand(messageDataAnswerWrite.command)
 

@@ -38,7 +38,7 @@ class outdoorTemperature(applicationData):
         self.setTemperature(0)
 
     def setTemperature(self, temp):
-        self.setData(0, temp, sinope.dataBuffer.DataType.short)
+        self.setData(0, int(temp * 100), sinope.dataBuffer.DataType.short)
 
     def getTemperature(self):
-        return self.getData(0, sinope.dataBuffer.DataType.short)
+        return self.getData(0, sinope.dataBuffer.DataType.short) / 100
