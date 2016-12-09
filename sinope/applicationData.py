@@ -42,3 +42,47 @@ class outdoorTemperature(applicationData):
 
     def getTemperature(self):
         return self.getData(0, sinope.dataBuffer.DataType.short) / 100
+
+class localTime(applicationData):
+    name = "LocalTime"
+    dataId = b"\x00\x00\x06\x00"
+
+    def __init__(self):
+        super(localTime, self).__init__(localTime.name)
+        self.setDataId(localTime.dataId)
+        self.setTime(0, 0, 0, False)
+
+    def setTime(self, hour, minute, second, dayLightSaving):
+        self.setData(0, second, sinope.dataBuffer.DataType.ubyte)
+        self.setData(1, minute, sinope.dataBuffer.DataType.ubyte)
+        adjustTime = hour
+        if (dayLightSaving):
+            adjustTime = adjustTime | 128
+        self.setData(2, adjustTime, sinope.dataBuffer.DataType.ubyte)
+
+
+class localDate(applicationData):
+    name = "LocalDate"
+    dataId = b"\x00\x00\x06\x01"
+
+    def __init__(self):
+        super(localDate, self).__init__(localDate.name)
+        self.setDataId(localDate.dataId)
+        self.setDate(0, 0, 0, 0)
+
+    def setDate(self, year, month, day, dayOfWeek):
+        self.setData(0, dayOfWeek, sinope.dataBuffer.DataType.ubyte)
+        self.setData(1, day, sinope.dataBuffer.DataType.ubyte)
+        self.setData(2, month, sinope.dataBuffer.DataType.ubyte)
+        self.setData(3, year, sinope.dataBuffer.DataType.ubyte)
+
+
+class ocupancySetback(applicationData):
+    name = "OcupancySetback"
+    dataId = b"\x00\x00\x07\x00"
+
+    def __init__(self):
+        super(ocupancySetback, self).__init__(ocupancySetback.name)
+        self.setDataId(ocupancySetback.dataId)
+
+
