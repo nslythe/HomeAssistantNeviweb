@@ -12,7 +12,19 @@ class applicationObjectManager(object):
             appData = message.getApplicationData()
 
     def report(self, appData, device):
+        message = sinope.message.messageDataRequestReport()
+        message.setDeviceId(device.deviceId)
+        message.setApplicationData(appData)
+        self.server.sendMessage(message)
+
+    def read(self, appData, device):
         message = sinope.message.messageDataRequestRead()
+        message.setDeviceId(device.deviceId)
+        message.setApplicationData(appData)
+        self.server.sendMessage(message)
+
+    def write(self, appData, device):
+        message = sinope.message.messageDataRequestWrite()
         message.setDeviceId(device.deviceId)
         message.setApplicationData(appData)
         self.server.sendMessage(message)

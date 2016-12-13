@@ -7,23 +7,17 @@ import sinope.logger
 
 
 class sessionManager(sinope.messageHandler.messageHandler):
-    def __init__(self, server):
+    def __init__(self, server, dataManager):
         self.__server = server
+        self.__dataManager = dataManager
         self.__server.addMessageHandler(self, sinope.message.messageAuthenticationKeyAnswer.command)
         self.__server.addMessageHandler(self, sinope.message.messageLoginAnswer.command)
         self.__authenticateEvent = threading.Event()
         self.__loginEvent = threading.Event()
 
-        self.__filePath = "api.key"
-        self.__apiKey = None
-        if os.path.exists(self.__filePath):
-            f = open(self.__filePath, 'rb')
-            self.__apiKey = f.read()       
-            f.close()
-            if len(self.__apiKey) != 8:
-                sinope.logger.logger.warning("api.key format failed")
-                os.unlink(self.__filePath)
-                self.__apiKey = None
+        self.__dataManager.newValue(self, "api_key")
+        self.__dataManager.newValue(self, "hardware_id")
+        print (self.__dataManager.getData())
 
 
     def handleMessage(self, message):
@@ -34,14 +28,11 @@ class sessionManager(sinope.messageHandler.messageHandler):
 
             elif message.getStatus() == 2:
                 sinope.logger.logger.info("Authentication key deleted")
-                if os.path.exists(self.__filePath):
-                    os.unlink(self.__filePath)
+                self.__dataManager.setValue(self, "api_key", None)
 
             elif message.getStatus() == 1:
-                self.__apiKey = message.getApiKey()
-                f = open(self.__filePath, 'wb')
-                f.write(self.__apiKey)
-                f.close()
+                apiKey = message.getApiKey()
+                self.__dataManager.setValue(self, "api_key", apiKey)
                 self.__authenticateEvent.set()
 
             else:
@@ -76,14 +67,15 @@ class sessionManager(sinope.messageHandler.messageHandler):
                 raise Exception("Unknown login status %d" % message.getStatus())
 
     def isAuthenticated(self):
-        return self.__apiKey != None
+        return self.__dataManager.getValue(self, "api_key") != None
 
-    def authenticate(self, hardwareId):
-        self.__hardwareId = hardwareId
+    def authenticate(self, hardwareId = None):
+        if hardwareId != None:
+            self.__dataManager.setValue(self, "hardware_id", hardwareId)
         if not self.isAuthenticated():
             self.__authenticateEvent.clear()
             message = sinope.message.messageAuthenticationKey()
-            message.setId(self.__hardwareId)
+            message.setId(self.__dataManager.getValue(self, "hardware_id"))
             self.__server.sendMessage(message)
             self.__authenticateEvent.wait()
             sinope.logger.logger.info("Sinope session authenticated")        
@@ -92,8 +84,8 @@ class sessionManager(sinope.messageHandler.messageHandler):
         if not self.isAuthenticated():
             raise Exception("Not authenticated")
         message = sinope.message.messageLogin()
-        message.setId(self.__hardwareId)
-        message.setApiKey(self.__apiKey)
+        message.setId(self.__dataManager.getValue(self, "hardware_id"))
+        message.setApiKey(self.__dataManager.getValue(self, "api_key"))
         self.__server.sendMessage(message)
         self.__loginEvent.wait()
         sinope.logger.logger.info("Sinope session loggedin")

@@ -7,22 +7,29 @@ import sinope.server
 import sinope.message
 import sinope.sessionManager
 import sinope.deviceManager
+import sinope.dataManager
 import sinope.applicationData
 import sinope.applicationObjectManager
 
 server = sinope.server.server("10.1.0.152", 4550)
 server.connect()
 
-sessionManager = sinope.sessionManager.sessionManager(server)
-appObjManager = sinope.applicationObjectManager.applicationObjectManager(server)
-deviceManager = sinope.deviceManager.deviceManager(server)
+dataManager = sinope.dataManager.dataManager()
+print (dataManager.getData())
 
-sessionManager.authenticate(sys.argv[1])
+sessionManager = sinope.sessionManager.sessionManager(server, dataManager)
+appObjManager = sinope.applicationObjectManager.applicationObjectManager(server)
+deviceManager = sinope.deviceManager.deviceManager(server, dataManager)
+
+if len(sys.argv) >= 2:
+    sessionManager.authenticate(sys.argv[1])
+else:
+    sessionManager.authenticate()
+    
 sessionManager.login()
 
-appData = sinope.applicationData.outdoorTemperature()
-appData.setTemperature(22.2)
-answer = appObjManager.report(appData, deviceManager.serverDevice)
+appData = sinope.applicationData.roomTemperature()
+answer = appObjManager.read(appData, deviceManager.serverDevice)
 
 server.wait()
 

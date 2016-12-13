@@ -85,4 +85,13 @@ class ocupancySetback(applicationData):
         super(ocupancySetback, self).__init__(ocupancySetback.name)
         self.setDataId(ocupancySetback.dataId)
 
+class roomTemperature(applicationData):
+    name = "RoomTemperature"
+    dataId = b"\x00\x00\x02\x03"
 
+    def __init__(self):
+        super(roomTemperature, self).__init__(roomTemperature.name)
+        self.setDataId(roomTemperature.dataId)
+
+    def getTemperature(self):
+        return self.getData(0, sinope.dataBuffer.DataType.short) / 100

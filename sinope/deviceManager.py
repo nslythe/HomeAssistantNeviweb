@@ -4,7 +4,7 @@ import sinope.str
 import sinope.logger
 
 class deviceManager(object):
-    def __init__(self, server):
+    def __init__(self, server, dataManager):
         self.__server = server
         self.__server.addMessageHandler(self, sinope.message.messageLoginAnswer.command)
         self.__server.addMessageHandler(self, sinope.message.messageDeviceLinkReport.command)
